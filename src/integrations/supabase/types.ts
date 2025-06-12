@@ -9,536 +9,75 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      admin_users: {
-        Row: {
-          created_at: string
-          id: string
-          password_hash: string
-          updated_at: string
-          username: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          password_hash: string
-          updated_at?: string
-          username: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          password_hash?: string
-          updated_at?: string
-          username?: string
-        }
-        Relationships: []
-      }
-      bots: {
-        Row: {
-          ai_personality: string | null
-          created_at: string | null
-          description: string | null
-          id: string
-          is_active: boolean | null
-          name: string
-          token: string | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          ai_personality?: string | null
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          is_active?: boolean | null
-          name: string
-          token?: string | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          ai_personality?: string | null
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          is_active?: boolean | null
-          name?: string
-          token?: string | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      contact_messages: {
-        Row: {
-          created_at: string | null
-          email: string
-          id: string
-          is_read: boolean | null
-          message: string
-          name: string
-          phone: string | null
-          subject: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          email: string
-          id?: string
-          is_read?: boolean | null
-          message: string
-          name: string
-          phone?: string | null
-          subject?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          email?: string
-          id?: string
-          is_read?: boolean | null
-          message?: string
-          name?: string
-          phone?: string | null
-          subject?: string | null
-        }
-        Relationships: []
-      }
-      conversations: {
-        Row: {
-          bot_id: string
-          created_at: string | null
-          id: string
-          last_message_at: string | null
-          message_count: number | null
-          user_telegram_id: string
-        }
-        Insert: {
-          bot_id: string
-          created_at?: string | null
-          id?: string
-          last_message_at?: string | null
-          message_count?: number | null
-          user_telegram_id: string
-        }
-        Update: {
-          bot_id?: string
-          created_at?: string | null
-          id?: string
-          last_message_at?: string | null
-          message_count?: number | null
-          user_telegram_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "conversations_bot_id_fkey"
-            columns: ["bot_id"]
-            isOneToOne: false
-            referencedRelation: "bots"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      medicines: {
-        Row: {
-          category: string
-          created_at: string
-          expiry_date: string
-          id: string
-          min_stock: number
-          name: string
-          price: number
-          stock: number
-          updated_at: string
-        }
-        Insert: {
-          category: string
-          created_at?: string
-          expiry_date: string
-          id?: string
-          min_stock?: number
-          name: string
-          price: number
-          stock?: number
-          updated_at?: string
-        }
-        Update: {
-          category?: string
-          created_at?: string
-          expiry_date?: string
-          id?: string
-          min_stock?: number
-          name?: string
-          price?: number
-          stock?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      menu_categories: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          display_order: number | null
-          id: string
-          name: string
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          display_order?: number | null
-          id?: string
-          name: string
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          display_order?: number | null
-          id?: string
-          name?: string
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      menu_items: {
-        Row: {
-          category_id: string | null
-          created_at: string | null
-          description: string | null
-          display_order: number | null
-          id: string
-          image_url: string | null
-          ingredients: string[] | null
-          is_available: boolean | null
-          is_spicy: boolean | null
-          is_vegetarian: boolean | null
-          name: string
-          price: number
-          updated_at: string | null
-        }
-        Insert: {
-          category_id?: string | null
-          created_at?: string | null
-          description?: string | null
-          display_order?: number | null
-          id?: string
-          image_url?: string | null
-          ingredients?: string[] | null
-          is_available?: boolean | null
-          is_spicy?: boolean | null
-          is_vegetarian?: boolean | null
-          name: string
-          price: number
-          updated_at?: string | null
-        }
-        Update: {
-          category_id?: string | null
-          created_at?: string | null
-          description?: string | null
-          display_order?: number | null
-          id?: string
-          image_url?: string | null
-          ingredients?: string[] | null
-          is_available?: boolean | null
-          is_spicy?: boolean | null
-          is_vegetarian?: boolean | null
-          name?: string
-          price?: number
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "menu_items_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "menu_categories"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      order_items: {
-        Row: {
-          created_at: string | null
-          id: string
-          menu_item_id: string | null
-          order_id: string | null
-          quantity: number
-          special_instructions: string | null
-          unit_price: number
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          menu_item_id?: string | null
-          order_id?: string | null
-          quantity: number
-          special_instructions?: string | null
-          unit_price: number
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          menu_item_id?: string | null
-          order_id?: string | null
-          quantity?: number
-          special_instructions?: string | null
-          unit_price?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "order_items_menu_item_id_fkey"
-            columns: ["menu_item_id"]
-            isOneToOne: false
-            referencedRelation: "menu_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "order_items_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "orders"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      orders: {
-        Row: {
-          created_at: string | null
-          customer_email: string
-          customer_name: string
-          customer_phone: string | null
-          delivery_address: string | null
-          id: string
-          notes: string | null
-          order_type: string
-          status: Database["public"]["Enums"]["order_status"] | null
-          total_amount: number
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          customer_email: string
-          customer_name: string
-          customer_phone?: string | null
-          delivery_address?: string | null
-          id?: string
-          notes?: string | null
-          order_type?: string
-          status?: Database["public"]["Enums"]["order_status"] | null
-          total_amount: number
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          customer_email?: string
-          customer_name?: string
-          customer_phone?: string | null
-          delivery_address?: string | null
-          id?: string
-          notes?: string | null
-          order_type?: string
-          status?: Database["public"]["Enums"]["order_status"] | null
-          total_amount?: number
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
-          auth_provider: Database["public"]["Enums"]["auth_provider"] | null
           avatar_url: string | null
           country: string | null
-          created_at: string | null
-          email: string | null
           full_name: string | null
           id: string
-          role: Database["public"]["Enums"]["user_role"] | null
+          is_admin: boolean | null
           updated_at: string | null
         }
         Insert: {
-          auth_provider?: Database["public"]["Enums"]["auth_provider"] | null
           avatar_url?: string | null
           country?: string | null
-          created_at?: string | null
-          email?: string | null
           full_name?: string | null
           id: string
-          role?: Database["public"]["Enums"]["user_role"] | null
+          is_admin?: boolean | null
           updated_at?: string | null
         }
         Update: {
-          auth_provider?: Database["public"]["Enums"]["auth_provider"] | null
           avatar_url?: string | null
           country?: string | null
-          created_at?: string | null
-          email?: string | null
           full_name?: string | null
           id?: string
-          role?: Database["public"]["Enums"]["user_role"] | null
+          is_admin?: boolean | null
           updated_at?: string | null
         }
         Relationships: []
       }
-      restaurant_tables: {
+      user_bots: {
         Row: {
-          capacity: number
-          created_at: string | null
-          id: string
-          location_description: string | null
-          status: Database["public"]["Enums"]["table_status"] | null
-          table_number: number
-          updated_at: string | null
-        }
-        Insert: {
-          capacity: number
-          created_at?: string | null
-          id?: string
-          location_description?: string | null
-          status?: Database["public"]["Enums"]["table_status"] | null
-          table_number: number
-          updated_at?: string | null
-        }
-        Update: {
-          capacity?: number
-          created_at?: string | null
-          id?: string
-          location_description?: string | null
-          status?: Database["public"]["Enums"]["table_status"] | null
-          table_number?: number
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      sales: {
-        Row: {
+          ai_prompt: string | null
+          bot_name: string | null
           created_at: string
           id: string
-          medicine_id: string
-          medicine_name: string
-          price: number
-          quantity: number
-          sale_date: string
-          sale_time: string
-          total_amount: number
+          telegram_bot_token: string
           updated_at: string
+          user_id: string
+          webhook_secret: string | null
         }
         Insert: {
+          ai_prompt?: string | null
+          bot_name?: string | null
           created_at?: string
           id?: string
-          medicine_id: string
-          medicine_name: string
-          price: number
-          quantity: number
-          sale_date: string
-          sale_time: string
-          total_amount: number
+          telegram_bot_token: string
           updated_at?: string
+          user_id: string
+          webhook_secret?: string | null
         }
         Update: {
+          ai_prompt?: string | null
+          bot_name?: string | null
           created_at?: string
           id?: string
-          medicine_id?: string
-          medicine_name?: string
-          price?: number
-          quantity?: number
-          sale_date?: string
-          sale_time?: string
-          total_amount?: number
+          telegram_bot_token?: string
           updated_at?: string
+          user_id?: string
+          webhook_secret?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "sales_medicine_id_fkey"
-            columns: ["medicine_id"]
-            isOneToOne: false
-            referencedRelation: "medicines"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      table_reservations: {
-        Row: {
-          created_at: string | null
-          guest_email: string
-          guest_name: string
-          guest_phone: string | null
-          id: string
-          party_size: number
-          reservation_date: string
-          reservation_time: string
-          special_requests: string | null
-          status: string | null
-          table_id: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          guest_email: string
-          guest_name: string
-          guest_phone?: string | null
-          id?: string
-          party_size: number
-          reservation_date: string
-          reservation_time: string
-          special_requests?: string | null
-          status?: string | null
-          table_id?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          guest_email?: string
-          guest_name?: string
-          guest_phone?: string | null
-          id?: string
-          party_size?: number
-          reservation_date?: string
-          reservation_time?: string
-          special_requests?: string | null
-          status?: string | null
-          table_id?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "table_reservations_table_id_fkey"
-            columns: ["table_id"]
-            isOneToOne: false
-            referencedRelation: "restaurant_tables"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      has_role: {
-        Args: {
-          _user_id: string
-          _role: Database["public"]["Enums"]["user_role"]
-        }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
-      auth_provider: "email" | "google" | "github"
-      order_status:
-        | "pending"
-        | "confirmed"
-        | "preparing"
-        | "ready"
-        | "delivered"
-        | "cancelled"
-      table_status: "available" | "reserved" | "occupied"
-      user_role: "user" | "admin"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -653,18 +192,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {
-      auth_provider: ["email", "google", "github"],
-      order_status: [
-        "pending",
-        "confirmed",
-        "preparing",
-        "ready",
-        "delivered",
-        "cancelled",
-      ],
-      table_status: ["available", "reserved", "occupied"],
-      user_role: ["user", "admin"],
-    },
+    Enums: {},
   },
 } as const
