@@ -4,11 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useMedicines, useUpdateMedicineStock } from '../hooks/useMedicines';
 import { useAddSale } from '../hooks/useSales';
-import { Plus } from 'lucide-react';
+import { Plus, Check, ChevronsUpDown } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { cn } from "@/lib/utils";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const AddSaleForm: React.FC = () => {
   const { data: medicines = [], isLoading: medicinesLoading } = useMedicines();
@@ -17,6 +19,7 @@ const AddSaleForm: React.FC = () => {
   const [selectedMedicine, setSelectedMedicine] = useState('');
   const [quantity, setQuantity] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [open, setOpen] = useState(false);
 
   const selectedMedicineData = medicines.find(m => m.id === selectedMedicine);
   const totalAmount = selectedMedicineData ? selectedMedicineData.price * parseInt(quantity || '0') : 0;
@@ -95,18 +98,54 @@ const AddSaleForm: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="medicine">Medicine</Label>
-            <Select value={selectedMedicine} onValueChange={setSelectedMedicine}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a medicine" />
-              </SelectTrigger>
-              <SelectContent>
-                {medicines.map(medicine => (
-                  <SelectItem key={medicine.id} value={medicine.id}>
-                    {medicine.name} - ${medicine.price} (Stock: {medicine.stock})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={open} onOpenChange={setOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={open}
+                  className="w-full justify-between"
+                >
+                  {selectedMedicine
+                    ? medicines.find((medicine) => medicine.id === selectedMedicine)?.name
+                    : "Select medicine..."}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0">
+                <Command>
+                  <CommandInput placeholder="Search medicines..." />
+                  <CommandList>
+                    <CommandEmpty>No medicine found.</CommandEmpty>
+                    <CommandGroup>
+                      {medicines.map((medicine) => (
+                        <CommandItem
+                          key={medicine.id}
+                          value={medicine.name}
+                          onSelect={() => {
+                            setSelectedMedicine(medicine.id);
+                            setOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedMedicine === medicine.id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          <div className="flex-1">
+                            <div className="font-medium">{medicine.name}</div>
+                            <div className="text-sm text-muted-foreground">
+                              ${medicine.price} • Stock: {medicine.stock}
+                            </div>
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="space-y-2">
