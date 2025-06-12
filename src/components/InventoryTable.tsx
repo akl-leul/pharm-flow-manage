@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -6,19 +5,34 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useMedicines } from '../hooks/useMedicines';
-import { Package, AlertTriangle, Plus } from 'lucide-react';
+import { Package, AlertTriangle, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import AddMedicineDialog from './AddMedicineDialog';
 import { PageLoadingSpinner } from './LoadingSpinner';
+
+const PAGE_SIZE = 5;
 
 const InventoryTable: React.FC = () => {
   const { data: medicines = [], isLoading } = useMedicines();
   const [searchQuery, setSearchQuery] = useState('');
-  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showAddDialog, setShowAddDialog] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const filteredMedicines = medicines.filter(medicine => 
     medicine.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     medicine.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredMedicines.length / PAGE_SIZE);
+  const paginatedMedicines = filteredMedicines.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
+
+  // Reset to first page on search
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   const getStockStatus = (medicine: any) => {
     if (medicine.stock === 0) return { label: 'Out of Stock', color: 'bg-red-100 text-red-800' };
@@ -45,7 +59,16 @@ const InventoryTable: React.FC = () => {
   }
 
   return (
+    
     <div className="space-y-6">
+      
+      {/* Add Medicine Button at the top right */}
+      <div className="flex justify-end mb-2">
+        
+         {showAddDialog && (
+        <AddMedicineDialog onClose={() => setShowAddDialog(false)} />
+      )}
+      </div>
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
@@ -58,10 +81,7 @@ const InventoryTable: React.FC = () => {
                 Monitor medicine stock levels and manage inventory
               </CardDescription>
             </div>
-            <Button onClick={() => setShowAddDialog(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Medicine
-            </Button>
+            {/* Removed Add Medicine button from here */}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -93,7 +113,7 @@ const InventoryTable: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredMedicines.map((medicine) => {
+                {paginatedMedicines.map((medicine) => {
                   const stockStatus = getStockStatus(medicine);
                   const expiringSoon = isExpiringSoon(medicine.expiry_date);
                   const expired = isExpired(medicine.expiry_date);
@@ -135,12 +155,33 @@ const InventoryTable: React.FC = () => {
               </TableBody>
             </Table>
           </div>
+
+          {/* Pagination Controls */}
+          <div className="flex justify-end items-center gap-2 pt-2">
+            <Button
+              variant="outline"
+              size="icon"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm">
+              Page {currentPage} of {totalPages || 1}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              disabled={currentPage === totalPages || totalPages === 0}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
-      {showAddDialog && (
-        <AddMedicineDialog onClose={() => setShowAddDialog(false)} />
-      )}
+     
     </div>
   );
 };
