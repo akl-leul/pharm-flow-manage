@@ -1,44 +1,34 @@
 
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { usePharmacy } from '../context/PharmacyContext';
+import { useAddMedicine } from '../hooks/useMedicines';
+import { Plus } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
-interface AddMedicineDialogProps {
-  onClose: () => void;
-}
-
-const AddMedicineDialog: React.FC<AddMedicineDialogProps> = ({ onClose }) => {
-  const { addMedicine } = usePharmacy();
+const AddMedicineDialog: React.FC = () => {
+  const addMedicine = useAddMedicine();
+  const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    category: '',
     stock: '',
     price: '',
-    expiryDate: '',
-    minStock: ''
+    category: '',
+    expiry_date: '',
+    min_stock: ''
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const categories = [
-    'Pain Relief',
-    'Antibiotic',
-    'Vitamin',
-    'Cold & Flu',
-    'Digestive',
-    'Heart',
-    'Diabetes',
-    'Other'
-  ];
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.category || !formData.stock || !formData.price || !formData.expiryDate || !formData.minStock) {
+    if (!formData.name || !formData.stock || !formData.price || !formData.category || !formData.expiry_date) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
@@ -47,125 +37,140 @@ const AddMedicineDialog: React.FC<AddMedicineDialogProps> = ({ onClose }) => {
       return;
     }
 
-    setIsSubmitting(true);
+    try {
+      const medicineData = {
+        name: formData.name,
+        stock: parseInt(formData.stock),
+        price: parseFloat(formData.price),
+        category: formData.category,
+        expiry_date: formData.expiry_date,
+        min_stock: parseInt(formData.min_stock) || 0
+      };
 
-    const medicineData = {
-      name: formData.name,
-      category: formData.category,
-      stock: parseInt(formData.stock),
-      price: parseFloat(formData.price),
-      expiryDate: formData.expiryDate,
-      minStock: parseInt(formData.minStock)
-    };
-
-    setTimeout(() => {
-      addMedicine(medicineData);
-      setIsSubmitting(false);
-      onClose();
-    }, 500);
-  };
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+      await addMedicine.mutateAsync(medicineData);
+      
+      // Reset form
+      setFormData({
+        name: '',
+        stock: '',
+        price: '',
+        category: '',
+        expiry_date: '',
+        min_stock: ''
+      });
+      setOpen(false);
+    } catch (error) {
+      console.error('Error adding medicine:', error);
+    }
   };
 
   return (
-    <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button className="bg-blue-600 hover:bg-blue-700">
+          <Plus className="h-4 w-4 mr-2" />
+          Add Medicine
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Add New Medicine</DialogTitle>
           <DialogDescription>
-            Add a new medicine to your inventory
+            Add a new medicine to the inventory
           </DialogDescription>
         </DialogHeader>
-        
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Medicine Name *</Label>
+            <Label htmlFor="name">Medicine Name</Label>
             <Input
               id="name"
+              placeholder="Enter medicine name"
               value={formData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
-              placeholder="e.g., Paracetamol 500mg"
               required
             />
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="stock">Stock</Label>
+              <Input
+                id="stock"
+                type="number"
+                min="0"
+                placeholder="Enter stock"
+                value={formData.stock}
+                onChange={(e) => handleInputChange('stock', e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="price">Price ($)</Label>
+              <Input
+                id="price"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Enter price"
+                value={formData.price}
+                onChange={(e) => handleInputChange('price', e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="category">Category *</Label>
+            <Label htmlFor="category">Category</Label>
             <Select value={formData.category} onValueChange={(value) => handleInputChange('category', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent>
-                {categories.map(category => (
-                  <SelectItem key={category} value={category}>
-                    {category}
-                  </SelectItem>
-                ))}
+                <SelectItem value="Pain Relief">Pain Relief</SelectItem>
+                <SelectItem value="Antibiotic">Antibiotic</SelectItem>
+                <SelectItem value="Diabetes">Diabetes</SelectItem>
+                <SelectItem value="Heart">Heart</SelectItem>
+                <SelectItem value="Respiratory">Respiratory</SelectItem>
+                <SelectItem value="Digestive">Digestive</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="stock">Initial Stock *</Label>
+              <Label htmlFor="expiry_date">Expiry Date</Label>
               <Input
-                id="stock"
+                id="expiry_date"
+                type="date"
+                value={formData.expiry_date}
+                onChange={(e) => handleInputChange('expiry_date', e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="min_stock">Min Stock</Label>
+              <Input
+                id="min_stock"
                 type="number"
                 min="0"
-                value={formData.stock}
-                onChange={(e) => handleInputChange('stock', e.target.value)}
-                placeholder="100"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="minStock">Min Stock *</Label>
-              <Input
-                id="minStock"
-                type="number"
-                min="1"
-                value={formData.minStock}
-                onChange={(e) => handleInputChange('minStock', e.target.value)}
-                placeholder="20"
-                required
+                placeholder="Min stock level"
+                value={formData.min_stock}
+                onChange={(e) => handleInputChange('min_stock', e.target.value)}
               />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="price">Price per Unit *</Label>
-            <Input
-              id="price"
-              type="number"
-              step="0.01"
-              min="0"
-              value={formData.price}
-              onChange={(e) => handleInputChange('price', e.target.value)}
-              placeholder="2.50"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="expiryDate">Expiry Date *</Label>
-            <Input
-              id="expiryDate"
-              type="date"
-              value={formData.expiryDate}
-              onChange={(e) => handleInputChange('expiryDate', e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
+          <div className="flex gap-2 pt-4">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1">
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Adding...' : 'Add Medicine'}
+            <Button 
+              type="submit" 
+              className="flex-1"
+              disabled={addMedicine.isPending}
+            >
+              {addMedicine.isPending ? 'Adding...' : 'Add Medicine'}
             </Button>
           </div>
         </form>

@@ -1,140 +1,78 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { usePharmacy } from '../context/PharmacyContext';
-import { Download, TrendingUp, Calendar, DollarSign } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { useMedicines } from '../hooks/useMedicines';
+import { useSales } from '../hooks/useSales';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { TrendingUp, Package, DollarSign, AlertTriangle } from 'lucide-react';
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
 const ReportsSection: React.FC = () => {
-  const { sales, medicines } = usePharmacy();
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const { data: sales = [], isLoading: salesLoading } = useSales();
+  const { data: medicines = [], isLoading: medicinesLoading } = useMedicines();
 
-  const filteredSales = sales.filter(sale => {
-    if (!startDate || !endDate) return true;
-    return sale.date >= startDate && sale.date <= endDate;
+  if (salesLoading || medicinesLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  // Calculate metrics
+  const totalRevenue = sales.reduce((sum, sale) => sum + Number(sale.total_amount), 0);
+  const totalSales = sales.length;
+  const lowStockItems = medicines.filter(med => med.stock <= med.min_stock);
+  
+  // Sales by category
+  const categoryData = medicines.reduce((acc, medicine) => {
+    const medicineSales = sales.filter(sale => sale.medicine_id === medicine.id);
+    const categoryRevenue = medicineSales.reduce((sum, sale) => sum + Number(sale.total_amount), 0);
+    
+    const existingCategory = acc.find(item => item.name === medicine.category);
+    if (existingCategory) {
+      existingCategory.value += categoryRevenue;
+    } else {
+      acc.push({ name: medicine.category, value: categoryRevenue });
+    }
+    return acc;
+  }, [] as { name: string; value: number }[]);
+
+  // Top selling medicines
+  const medicinesSalesData = medicines.map(medicine => {
+    const medicineSales = sales.filter(sale => sale.medicine_id === medicine.id);
+    const totalQuantity = medicineSales.reduce((sum, sale) => sum + sale.quantity, 0);
+    const totalRevenue = medicineSales.reduce((sum, sale) => sum + Number(sale.total_amount), 0);
+    
+    return {
+      name: medicine.name,
+      quantity: totalQuantity,
+      revenue: totalRevenue
+    };
+  }).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+
+  // Daily sales (last 7 days)
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    return date.toISOString().split('T')[0];
+  }).reverse();
+
+  const dailySalesData = last7Days.map(date => {
+    const daySales = sales.filter(sale => sale.sale_date === date);
+    const revenue = daySales.reduce((sum, sale) => sum + Number(sale.total_amount), 0);
+    return {
+      date: new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+      revenue: revenue,
+      sales: daySales.length
+    };
   });
-
-  const totalRevenue = filteredSales.reduce((sum, sale) => sum + sale.totalAmount, 0);
-  const totalTransactions = filteredSales.length;
-  const averageTransactionValue = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
-
-  const topMedicines = sales
-    .reduce((acc, sale) => {
-      const existing = acc.find(item => item.medicineId === sale.medicineId);
-      if (existing) {
-        existing.totalQuantity += sale.quantity;
-        existing.totalRevenue += sale.totalAmount;
-      } else {
-        acc.push({
-          medicineId: sale.medicineId,
-          medicineName: sale.medicineName,
-          totalQuantity: sale.quantity,
-          totalRevenue: sale.totalAmount
-        });
-      }
-      return acc;
-    }, [] as any[])
-    .sort((a, b) => b.totalRevenue - a.totalRevenue)
-    .slice(0, 5);
-
-  const exportToCSV = () => {
-    const headers = ['Medicine', 'Quantity', 'Unit Price', 'Total Amount', 'Date', 'Time'];
-    const csvContent = [
-      headers.join(','),
-      ...filteredSales.map(sale => [
-        sale.medicineName,
-        sale.quantity,
-        sale.price,
-        sale.totalAmount,
-        sale.date,
-        sale.time
-      ].join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `pharmacy-sales-report-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-
-    toast({
-      title: "Export Successful",
-      description: "Sales report has been downloaded as CSV"
-    });
-  };
-
-  const exportToPDF = () => {
-    // Simulate PDF export
-    toast({
-      title: "PDF Export",
-      description: "PDF export functionality would be implemented with a library like jsPDF"
-    });
-  };
 
   return (
     <div className="space-y-6">
-      {/* Date Range Filter */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Report Filters
-          </CardTitle>
-          <CardDescription>
-            Select date range for your reports
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-            <div className="space-y-2">
-              <Label htmlFor="start-date">Start Date</Label>
-              <Input
-                id="start-date"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="end-date">End Date</Label>
-              <Input
-                id="end-date"
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setStartDate('');
-                  setEndDate('');
-                }}
-              >
-                Clear
-              </Button>
-              <Button onClick={() => {
-                const today = new Date().toISOString().split('T')[0];
-                const lastWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-                setStartDate(lastWeek);
-                setEndDate(today);
-              }}>
-                Last 7 Days
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Summary Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
@@ -142,35 +80,91 @@ const ReportsSection: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">
-              {startDate && endDate ? `${startDate} to ${endDate}` : 'All time'}
-            </p>
+            <p className="text-xs text-muted-foreground">All time revenue</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Transactions</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Sales</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalTransactions}</div>
-            <p className="text-xs text-muted-foreground">
-              Sales transactions
-            </p>
+            <div className="text-2xl font-bold">{totalSales}</div>
+            <p className="text-xs text-muted-foreground">Total transactions</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Average Transaction</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Medicines</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${averageTransactionValue.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">
-              Per transaction
-            </p>
+            <div className="text-2xl font-bold">{medicines.length}</div>
+            <p className="text-xs text-muted-foreground">In inventory</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Low Stock</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{lowStockItems.length}</div>
+            <p className="text-xs text-muted-foreground">Items need restocking</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Daily Sales Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Daily Sales (Last 7 Days)</CardTitle>
+            <CardDescription>Revenue and number of sales per day</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={dailySalesData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="revenue" fill="#3B82F6" name="Revenue ($)" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Category Distribution */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Sales by Category</CardTitle>
+            <CardDescription>Revenue distribution across medicine categories</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={categoryData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {categoryData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Revenue']} />
+              </PieChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
@@ -179,64 +173,47 @@ const ReportsSection: React.FC = () => {
       <Card>
         <CardHeader>
           <CardTitle>Top Selling Medicines</CardTitle>
-          <CardDescription>
-            Best performing medicines by revenue
-          </CardDescription>
+          <CardDescription>Best performing medicines by revenue</CardDescription>
         </CardHeader>
         <CardContent>
-          {topMedicines.length === 0 ? (
-            <p className="text-center text-gray-500 py-8">No sales data available</p>
-          ) : (
-            <div className="space-y-4">
-              {topMedicines.map((medicine, index) => (
-                <div key={medicine.medicineId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-semibold">
-                      {index + 1}
-                    </div>
-                    <div>
-                      <h4 className="font-medium">{medicine.medicineName}</h4>
-                      <p className="text-sm text-gray-600">{medicine.totalQuantity} units sold</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold">${medicine.totalRevenue.toFixed(2)}</p>
-                    <p className="text-sm text-gray-600">Revenue</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={medicinesSalesData} layout="horizontal">
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis type="number" />
+              <YAxis dataKey="name" type="category" width={120} />
+              <Tooltip />
+              <Bar dataKey="revenue" fill="#10B981" name="Revenue ($)" />
+            </BarChart>
+          </ResponsiveContainer>
         </CardContent>
       </Card>
 
-      {/* Export Options */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Download className="h-5 w-5" />
-            Export Reports
-          </CardTitle>
-          <CardDescription>
-            Download your sales data in different formats
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4">
-            <Button onClick={exportToCSV} className="flex items-center gap-2">
-              <Download className="h-4 w-4" />
-              Export CSV
-            </Button>
-            <Button variant="outline" onClick={exportToPDF} className="flex items-center gap-2">
-              <Download className="h-4 w-4" />
-              Export PDF
-            </Button>
-          </div>
-          <p className="text-sm text-gray-600 mt-2">
-            {filteredSales.length} records will be exported
-          </p>
-        </CardContent>
-      </Card>
+      {/* Low Stock Alert */}
+      {lowStockItems.length > 0 && (
+        <Card className="border-red-200 bg-red-50">
+          <CardHeader>
+            <CardTitle className="text-red-800 flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" />
+              Low Stock Alert
+            </CardTitle>
+            <CardDescription className="text-red-600">
+              The following medicines are running low and need restocking
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {lowStockItems.map(medicine => (
+                <div key={medicine.id} className="flex justify-between items-center p-2 bg-white rounded border">
+                  <span className="font-medium">{medicine.name}</span>
+                  <span className="text-red-600 font-semibold">
+                    {medicine.stock} remaining (Min: {medicine.min_stock})
+                  </span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

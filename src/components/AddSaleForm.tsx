@@ -5,12 +5,15 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { usePharmacy } from '../context/PharmacyContext';
+import { useMedicines, useUpdateMedicineStock } from '../hooks/useMedicines';
+import { useAddSale } from '../hooks/useSales';
 import { Plus } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const AddSaleForm: React.FC = () => {
-  const { medicines, addSale } = usePharmacy();
+  const { data: medicines = [], isLoading: medicinesLoading } = useMedicines();
+  const addSale = useAddSale();
+  const updateStock = useUpdateMedicineStock();
   const [selectedMedicine, setSelectedMedicine] = useState('');
   const [quantity, setQuantity] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,24 +48,37 @@ const AddSaleForm: React.FC = () => {
 
     setIsSubmitting(true);
 
-    const now = new Date();
-    const saleData = {
-      medicineId: selectedMedicine,
-      medicineName: medicine.name,
-      quantity: quantityNum,
-      price: medicine.price,
-      totalAmount,
-      date: now.toISOString().split('T')[0],
-      time: now.toTimeString().split(' ')[0]
-    };
+    try {
+      const now = new Date();
+      const saleData = {
+        medicine_id: selectedMedicine,
+        medicine_name: medicine.name,
+        quantity: quantityNum,
+        price: medicine.price,
+        total_amount: totalAmount,
+        sale_date: now.toISOString().split('T')[0],
+        sale_time: now.toTimeString().split(' ')[0]
+      };
 
-    setTimeout(() => {
-      addSale(saleData);
+      await addSale.mutateAsync(saleData);
       setSelectedMedicine('');
       setQuantity('');
+    } catch (error) {
+      console.error('Error adding sale:', error);
+    } finally {
       setIsSubmitting(false);
-    }, 500);
+    }
   };
+
+  if (medicinesLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -139,9 +155,9 @@ const AddSaleForm: React.FC = () => {
           <Button 
             type="submit" 
             className="w-full"
-            disabled={isSubmitting || !selectedMedicine || !quantity}
+            disabled={isSubmitting || !selectedMedicine || !quantity || addSale.isPending}
           >
-            {isSubmitting ? 'Recording Sale...' : 'Record Sale'}
+            {isSubmitting || addSale.isPending ? 'Recording Sale...' : 'Record Sale'}
           </Button>
         </form>
       </CardContent>
