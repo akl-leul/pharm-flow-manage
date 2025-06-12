@@ -4,6 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { usePharmacy } from '../context/PharmacyContext';
+import { useMedicines } from '../hooks/useMedicines';
+import { useSales } from '../hooks/useSales';
 import { 
   ShoppingCart, 
   Package, 
@@ -19,24 +21,28 @@ import { AppSidebar } from './AppSidebar';
 import { PageLoadingSpinner } from './LoadingSpinner';
 
 const Dashboard: React.FC = () => {
-  const { sales, medicines } = usePharmacy();
+  const { logout } = usePharmacy();
   const [activeTab, setActiveTab] = useState('overview');
   const [isLoading, setIsLoading] = useState(false);
 
-  const totalSales = sales.reduce((sum, sale) => sum + sale.totalAmount, 0);
-  const todaySales = sales.filter(sale => sale.date === new Date().toISOString().split('T')[0]);
-  const lowStockMedicines = medicines.filter(medicine => medicine.stock <= medicine.minStock);
+  const { data: medicines = [], isLoading: medicinesLoading } = useMedicines();
+  const { data: sales = [], isLoading: salesLoading } = useSales();
+
+  const totalSales = sales.reduce((sum, sale) => sum + Number(sale.total_amount), 0);
+  const today = new Date().toISOString().split('T')[0];
+  const todaySales = sales.filter(sale => sale.sale_date === today);
+  const lowStockMedicines = medicines.filter(medicine => medicine.stock <= medicine.min_stock);
 
   const handleTabChange = (tab: string) => {
     setIsLoading(true);
     setTimeout(() => {
       setActiveTab(tab);
       setIsLoading(false);
-    }, 300); // Smooth transition with loading
+    }, 300);
   };
 
   const renderContent = () => {
-    if (isLoading) {
+    if (isLoading || medicinesLoading || salesLoading) {
       return <PageLoadingSpinner />;
     }
 
@@ -67,7 +73,7 @@ const Dashboard: React.FC = () => {
                 <CardContent>
                   <div className="text-2xl font-bold">{todaySales.length}</div>
                   <p className="text-xs text-muted-foreground">
-                    ${todaySales.reduce((sum, sale) => sum + sale.totalAmount, 0).toFixed(2)} revenue
+                    ${todaySales.reduce((sum, sale) => sum + Number(sale.total_amount), 0).toFixed(2)} revenue
                   </p>
                 </CardContent>
               </Card>
@@ -152,7 +158,7 @@ const Dashboard: React.FC = () => {
                       <div key={medicine.id} className="flex justify-between items-center p-2 bg-white rounded border transition-all duration-200 hover:shadow-sm">
                         <span className="font-medium">{medicine.name}</span>
                         <span className="text-red-600 font-semibold">
-                          {medicine.stock} remaining (Min: {medicine.minStock})
+                          {medicine.stock} remaining (Min: {medicine.min_stock})
                         </span>
                       </div>
                     ))}

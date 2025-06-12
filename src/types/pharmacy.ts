@@ -5,23 +5,29 @@ export interface Medicine {
   stock: number;
   price: number;
   category: string;
-  expiryDate: string;
-  minStock: number;
+  expiry_date: string;
+  min_stock: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Sale {
   id: string;
-  medicineId: string;
-  medicineName: string;
+  medicine_id: string;
+  medicine_name: string;
   quantity: number;
   price: number;
-  totalAmount: number;
-  date: string;
-  time: string;
+  total_amount: number;
+  sale_date: string;
+  sale_time: string;
+  created_at: string;
+  updated_at: string;
 }
 
-export interface Admin {
+export interface AdminUser {
   id: string;
   username: string;
-  password: string;
+  password_hash: string;
+  created_at: string;
+  updated_at: string;
 }

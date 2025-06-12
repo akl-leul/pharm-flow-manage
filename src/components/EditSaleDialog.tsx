@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { usePharmacy } from '../context/PharmacyContext';
+import { useSales, useUpdateSale } from '../hooks/useSales';
 import { toast } from '@/hooks/use-toast';
 
 interface EditSaleDialogProps {
@@ -13,9 +13,9 @@ interface EditSaleDialogProps {
 }
 
 const EditSaleDialog: React.FC<EditSaleDialogProps> = ({ saleId, onClose }) => {
-  const { sales, editSale } = usePharmacy();
+  const { data: sales = [] } = useSales();
+  const updateSaleMutation = useUpdateSale();
   const [quantity, setQuantity] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const sale = sales.find(s => s.id === saleId);
 
@@ -40,18 +40,19 @@ const EditSaleDialog: React.FC<EditSaleDialogProps> = ({ saleId, onClose }) => {
       return;
     }
 
-    setIsSubmitting(true);
-
     const updatedSale = {
       quantity: newQuantity,
-      totalAmount: sale.price * newQuantity
+      total_amount: Number(sale.price) * newQuantity
     };
 
-    setTimeout(() => {
-      editSale(saleId, updatedSale);
-      setIsSubmitting(false);
-      onClose();
-    }, 500);
+    updateSaleMutation.mutate(
+      { id: saleId, updates: updatedSale },
+      {
+        onSuccess: () => {
+          onClose();
+        }
+      }
+    );
   };
 
   return (
@@ -60,14 +61,14 @@ const EditSaleDialog: React.FC<EditSaleDialogProps> = ({ saleId, onClose }) => {
         <DialogHeader>
           <DialogTitle>Edit Sale</DialogTitle>
           <DialogDescription>
-            Update the sale details for {sale.medicineName}
+            Update the sale details for {sale.medicine_name}
           </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label>Medicine</Label>
-            <Input value={sale.medicineName} disabled />
+            <Input value={sale.medicine_name} disabled />
           </div>
 
           <div className="space-y-2">
@@ -84,13 +85,13 @@ const EditSaleDialog: React.FC<EditSaleDialogProps> = ({ saleId, onClose }) => {
 
           <div className="space-y-2">
             <Label>Unit Price</Label>
-            <Input value={`$${sale.price.toFixed(2)}`} disabled />
+            <Input value={`$${Number(sale.price).toFixed(2)}`} disabled />
           </div>
 
           <div className="space-y-2">
             <Label>Total Amount</Label>
             <Input 
-              value={`$${(sale.price * parseInt(quantity || '0')).toFixed(2)}`} 
+              value={`$${(Number(sale.price) * parseInt(quantity || '0')).toFixed(2)}`} 
               disabled 
             />
           </div>
@@ -99,8 +100,8 @@ const EditSaleDialog: React.FC<EditSaleDialogProps> = ({ saleId, onClose }) => {
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Updating...' : 'Update Sale'}
+            <Button type="submit" disabled={updateSaleMutation.isPending}>
+              {updateSaleMutation.isPending ? 'Updating...' : 'Update Sale'}
             </Button>
           </div>
         </form>

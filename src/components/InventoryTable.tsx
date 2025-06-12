@@ -5,12 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { usePharmacy } from '../context/PharmacyContext';
+import { useMedicines } from '../hooks/useMedicines';
 import { Package, AlertTriangle, Plus } from 'lucide-react';
 import AddMedicineDialog from './AddMedicineDialog';
+import { PageLoadingSpinner } from './LoadingSpinner';
 
 const InventoryTable: React.FC = () => {
-  const { medicines } = usePharmacy();
+  const { data: medicines = [], isLoading } = useMedicines();
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
 
@@ -21,7 +22,7 @@ const InventoryTable: React.FC = () => {
 
   const getStockStatus = (medicine: any) => {
     if (medicine.stock === 0) return { label: 'Out of Stock', color: 'bg-red-100 text-red-800' };
-    if (medicine.stock <= medicine.minStock) return { label: 'Low Stock', color: 'bg-yellow-100 text-yellow-800' };
+    if (medicine.stock <= medicine.min_stock) return { label: 'Low Stock', color: 'bg-yellow-100 text-yellow-800' };
     return { label: 'In Stock', color: 'bg-green-100 text-green-800' };
   };
 
@@ -38,6 +39,10 @@ const InventoryTable: React.FC = () => {
     const today = new Date();
     return expiry < today;
   };
+
+  if (isLoading) {
+    return <PageLoadingSpinner />;
+  }
 
   return (
     <div className="space-y-6">
@@ -90,8 +95,8 @@ const InventoryTable: React.FC = () => {
               <TableBody>
                 {filteredMedicines.map((medicine) => {
                   const stockStatus = getStockStatus(medicine);
-                  const expiringSoon = isExpiringSoon(medicine.expiryDate);
-                  const expired = isExpired(medicine.expiryDate);
+                  const expiringSoon = isExpiringSoon(medicine.expiry_date);
+                  const expired = isExpired(medicine.expiry_date);
                   
                   return (
                     <TableRow key={medicine.id}>
@@ -99,20 +104,20 @@ const InventoryTable: React.FC = () => {
                       <TableCell>{medicine.category}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <span className={medicine.stock <= medicine.minStock ? 'text-red-600 font-semibold' : ''}>
+                          <span className={medicine.stock <= medicine.min_stock ? 'text-red-600 font-semibold' : ''}>
                             {medicine.stock}
                           </span>
-                          {medicine.stock <= medicine.minStock && (
+                          {medicine.stock <= medicine.min_stock && (
                             <AlertTriangle className="h-4 w-4 text-red-500" />
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>{medicine.minStock}</TableCell>
-                      <TableCell>${medicine.price.toFixed(2)}</TableCell>
+                      <TableCell>{medicine.min_stock}</TableCell>
+                      <TableCell>${Number(medicine.price).toFixed(2)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <span className={expired ? 'text-red-600 font-semibold' : expiringSoon ? 'text-yellow-600' : ''}>
-                            {medicine.expiryDate}
+                            {medicine.expiry_date}
                           </span>
                           {(expired || expiringSoon) && (
                             <AlertTriangle className={`h-4 w-4 ${expired ? 'text-red-500' : 'text-yellow-500'}`} />

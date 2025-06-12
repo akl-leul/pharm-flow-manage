@@ -5,27 +5,33 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { usePharmacy } from '../context/PharmacyContext';
+import { useSales, useDeleteSale } from '../hooks/useSales';
 import { Search, Edit, Trash2, Calendar } from 'lucide-react';
 import EditSaleDialog from './EditSaleDialog';
+import { PageLoadingSpinner } from './LoadingSpinner';
 
 const SalesTable: React.FC = () => {
-  const { sales, deleteSale } = usePharmacy();
+  const { data: sales = [], isLoading } = useSales();
+  const deleteSaleMutation = useDeleteSale();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
   const [editingSale, setEditingSale] = useState<string | null>(null);
 
   const filteredSales = sales.filter(sale => {
-    const matchesSearch = sale.medicineName.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesDate = !selectedDate || sale.date === selectedDate;
+    const matchesSearch = sale.medicine_name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesDate = !selectedDate || sale.sale_date === selectedDate;
     return matchesSearch && matchesDate;
   });
 
   const handleDelete = (id: string) => {
     if (window.confirm('Are you sure you want to delete this sale? Stock will be restored.')) {
-      deleteSale(id);
+      deleteSaleMutation.mutate(id);
     }
   };
+
+  if (isLoading) {
+    return <PageLoadingSpinner />;
+  }
 
   return (
     <Card>
@@ -76,7 +82,7 @@ const SalesTable: React.FC = () => {
           </p>
           {filteredSales.length > 0 && (
             <Badge variant="secondary">
-              Total: ${filteredSales.reduce((sum, sale) => sum + sale.totalAmount, 0).toFixed(2)}
+              Total: ${filteredSales.reduce((sum, sale) => sum + Number(sale.total_amount), 0).toFixed(2)}
             </Badge>
           )}
         </div>
@@ -105,16 +111,16 @@ const SalesTable: React.FC = () => {
               ) : (
                 filteredSales.map((sale) => (
                   <TableRow key={sale.id}>
-                    <TableCell className="font-medium">{sale.medicineName}</TableCell>
+                    <TableCell className="font-medium">{sale.medicine_name}</TableCell>
                     <TableCell>{sale.quantity}</TableCell>
-                    <TableCell>${sale.price.toFixed(2)}</TableCell>
+                    <TableCell>${Number(sale.price).toFixed(2)}</TableCell>
                     <TableCell>
                       <Badge className="bg-green-100 text-green-800">
-                        ${sale.totalAmount.toFixed(2)}
+                        ${Number(sale.total_amount).toFixed(2)}
                       </Badge>
                     </TableCell>
-                    <TableCell>{sale.date}</TableCell>
-                    <TableCell>{sale.time}</TableCell>
+                    <TableCell>{sale.sale_date}</TableCell>
+                    <TableCell>{sale.sale_time}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button
@@ -129,6 +135,7 @@ const SalesTable: React.FC = () => {
                           size="sm"
                           onClick={() => handleDelete(sale.id)}
                           className="text-red-600 hover:text-red-700"
+                          disabled={deleteSaleMutation.isPending}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
