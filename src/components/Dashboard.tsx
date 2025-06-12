@@ -2,14 +2,12 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { usePharmacy } from '../context/PharmacyContext';
 import { 
-  Pill, 
   ShoppingCart, 
   Package, 
   TrendingUp, 
-  LogOut,
   Plus,
   AlertTriangle
 } from 'lucide-react';
@@ -17,55 +15,38 @@ import SalesTable from './SalesTable';
 import AddSaleForm from './AddSaleForm';
 import InventoryTable from './InventoryTable';
 import ReportsSection from './ReportsSection';
+import { AppSidebar } from './AppSidebar';
+import { PageLoadingSpinner } from './LoadingSpinner';
 
 const Dashboard: React.FC = () => {
-  const { logout, sales, medicines } = usePharmacy();
+  const { sales, medicines } = usePharmacy();
   const [activeTab, setActiveTab] = useState('overview');
+  const [isLoading, setIsLoading] = useState(false);
 
   const totalSales = sales.reduce((sum, sale) => sum + sale.totalAmount, 0);
   const todaySales = sales.filter(sale => sale.date === new Date().toISOString().split('T')[0]);
   const lowStockMedicines = medicines.filter(medicine => medicine.stock <= medicine.minStock);
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-3">
-              <div className="bg-blue-600 p-2 rounded-lg">
-                <Pill className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">PharmaCare</h1>
-                <p className="text-sm text-gray-500">Admin Dashboard</p>
-              </div>
-            </div>
-            <Button 
-              variant="outline" 
-              onClick={logout}
-              className="flex items-center gap-2"
-            >
-              <LogOut className="h-4 w-4" />
-              Logout
-            </Button>
-          </div>
-        </div>
-      </header>
+  const handleTabChange = (tab: string) => {
+    setIsLoading(true);
+    setTimeout(() => {
+      setActiveTab(tab);
+      setIsLoading(false);
+    }, 300); // Smooth transition with loading
+  };
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="sales">Sales</TabsTrigger>
-            <TabsTrigger value="inventory">Inventory</TabsTrigger>
-            <TabsTrigger value="reports">Reports</TabsTrigger>
-          </TabsList>
+  const renderContent = () => {
+    if (isLoading) {
+      return <PageLoadingSpinner />;
+    }
 
-          <TabsContent value="overview" className="space-y-6">
+    switch (activeTab) {
+      case 'overview':
+        return (
+          <div className="space-y-6 animate-fade-in">
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card>
+              <Card className="transition-all duration-200 hover:shadow-lg hover:scale-105">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Sales</CardTitle>
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
@@ -78,7 +59,7 @@ const Dashboard: React.FC = () => {
                 </CardContent>
               </Card>
               
-              <Card>
+              <Card className="transition-all duration-200 hover:shadow-lg hover:scale-105">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Today's Sales</CardTitle>
                   <ShoppingCart className="h-4 w-4 text-muted-foreground" />
@@ -91,7 +72,7 @@ const Dashboard: React.FC = () => {
                 </CardContent>
               </Card>
               
-              <Card>
+              <Card className="transition-all duration-200 hover:shadow-lg hover:scale-105">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Medicines</CardTitle>
                   <Package className="h-4 w-4 text-muted-foreground" />
@@ -104,7 +85,7 @@ const Dashboard: React.FC = () => {
                 </CardContent>
               </Card>
               
-              <Card>
+              <Card className="transition-all duration-200 hover:shadow-lg hover:scale-105">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Low Stock</CardTitle>
                   <AlertTriangle className="h-4 w-4 text-red-500" />
@@ -119,7 +100,7 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* Quick Actions */}
-            <Card>
+            <Card className="transition-all duration-200 hover:shadow-lg">
               <CardHeader>
                 <CardTitle>Quick Actions</CardTitle>
                 <CardDescription>Frequently used actions for daily operations</CardDescription>
@@ -127,24 +108,24 @@ const Dashboard: React.FC = () => {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Button 
-                    className="h-20 flex flex-col gap-2 bg-blue-600 hover:bg-blue-700"
-                    onClick={() => setActiveTab('sales')}
+                    className="h-20 flex flex-col gap-2 bg-blue-600 hover:bg-blue-700 transition-all duration-200 hover:scale-105"
+                    onClick={() => handleTabChange('sales')}
                   >
                     <Plus className="h-6 w-6" />
                     Add New Sale
                   </Button>
                   <Button 
                     variant="outline" 
-                    className="h-20 flex flex-col gap-2"
-                    onClick={() => setActiveTab('inventory')}
+                    className="h-20 flex flex-col gap-2 transition-all duration-200 hover:scale-105"
+                    onClick={() => handleTabChange('inventory')}
                   >
                     <Package className="h-6 w-6" />
                     Manage Inventory
                   </Button>
                   <Button 
                     variant="outline" 
-                    className="h-20 flex flex-col gap-2"
-                    onClick={() => setActiveTab('reports')}
+                    className="h-20 flex flex-col gap-2 transition-all duration-200 hover:scale-105"
+                    onClick={() => handleTabChange('reports')}
                   >
                     <TrendingUp className="h-6 w-6" />
                     View Reports
@@ -155,7 +136,7 @@ const Dashboard: React.FC = () => {
 
             {/* Low Stock Alert */}
             {lowStockMedicines.length > 0 && (
-              <Card className="border-red-200 bg-red-50">
+              <Card className="border-red-200 bg-red-50 transition-all duration-200 hover:shadow-lg animate-fade-in">
                 <CardHeader>
                   <CardTitle className="text-red-800 flex items-center gap-2">
                     <AlertTriangle className="h-5 w-5" />
@@ -168,7 +149,7 @@ const Dashboard: React.FC = () => {
                 <CardContent>
                   <div className="space-y-2">
                     {lowStockMedicines.map(medicine => (
-                      <div key={medicine.id} className="flex justify-between items-center p-2 bg-white rounded border">
+                      <div key={medicine.id} className="flex justify-between items-center p-2 bg-white rounded border transition-all duration-200 hover:shadow-sm">
                         <span className="font-medium">{medicine.name}</span>
                         <span className="text-red-600 font-semibold">
                           {medicine.stock} remaining (Min: {medicine.minStock})
@@ -179,9 +160,11 @@ const Dashboard: React.FC = () => {
                 </CardContent>
               </Card>
             )}
-          </TabsContent>
-
-          <TabsContent value="sales" className="space-y-6">
+          </div>
+        );
+      case 'sales':
+        return (
+          <div className="space-y-6 animate-fade-in">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-1">
                 <AddSaleForm />
@@ -190,18 +173,53 @@ const Dashboard: React.FC = () => {
                 <SalesTable />
               </div>
             </div>
-          </TabsContent>
-
-          <TabsContent value="inventory">
+          </div>
+        );
+      case 'inventory':
+        return (
+          <div className="animate-fade-in">
             <InventoryTable />
-          </TabsContent>
-
-          <TabsContent value="reports">
+          </div>
+        );
+      case 'reports':
+        return (
+          <div className="animate-fade-in">
             <ReportsSection />
-          </TabsContent>
-        </Tabs>
+          </div>
+        );
+      default:
+        return <PageLoadingSpinner />;
+    }
+  };
+
+  return (
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-gray-50">
+        <AppSidebar activeTab={activeTab} onTabChange={handleTabChange} />
+        <SidebarInset className="flex-1">
+          {/* Header */}
+          <header className="bg-white shadow-sm border-b sticky top-0 z-10">
+            <div className="flex items-center gap-4 h-16 px-6">
+              <SidebarTrigger className="transition-all duration-200 hover:scale-110" />
+              <div className="flex-1">
+                <h2 className="text-xl font-semibold capitalize">{activeTab}</h2>
+                <p className="text-sm text-muted-foreground">
+                  {activeTab === 'overview' && 'Dashboard overview and quick actions'}
+                  {activeTab === 'sales' && 'Manage sales transactions'}
+                  {activeTab === 'inventory' && 'Manage medicine inventory'}
+                  {activeTab === 'reports' && 'View analytics and reports'}
+                </p>
+              </div>
+            </div>
+          </header>
+
+          {/* Main Content */}
+          <main className="flex-1 p-6">
+            {renderContent()}
+          </main>
+        </SidebarInset>
       </div>
-    </div>
+    </SidebarProvider>
   );
 };
 
