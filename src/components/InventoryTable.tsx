@@ -5,31 +5,33 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useMedicines } from '../hooks/useMedicines';
-import { Package, AlertTriangle, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Package, AlertTriangle, ChevronLeft, ChevronRight, Pencil, Trash } from 'lucide-react';
 import AddMedicineDialog from './AddMedicineDialog';
 import { PageLoadingSpinner } from './LoadingSpinner';
+import { supabase } from '../lib/supabaseClient'; // ⬅️ Ensure this is your supabase client
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 
 const PAGE_SIZE = 5;
 
 const InventoryTable: React.FC = () => {
-  const { data: medicines = [], isLoading } = useMedicines();
+  const { data: medicines = [], isLoading, mutate } = useMedicines();
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [editingMedicine, setEditingMedicine] = useState<any | null>(null);
 
   const filteredMedicines = medicines.filter(medicine => 
     medicine.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     medicine.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Pagination logic
   const totalPages = Math.ceil(filteredMedicines.length / PAGE_SIZE);
   const paginatedMedicines = filteredMedicines.slice(
     (currentPage - 1) * PAGE_SIZE,
     currentPage * PAGE_SIZE
   );
 
-  // Reset to first page on search
   React.useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery]);
@@ -54,20 +56,51 @@ const InventoryTable: React.FC = () => {
     return expiry < today;
   };
 
+  // 🔹 Delete medicine
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from('medicines').delete().eq('id', id);
+    if (error) {
+      alert('Failed to delete: ' + error.message);
+    } else {
+      mutate(); // refresh data
+    }
+  };
+
+  // 🔹 Update medicine
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingMedicine) return;
+
+    const { error } = await supabase
+      .from('medicines')
+      .update({
+        name: editingMedicine.name,
+        category: editingMedicine.category,
+        stock: editingMedicine.stock,
+        min_stock: editingMedicine.min_stock,
+        price: editingMedicine.price,
+        expiry_date: editingMedicine.expiry_date,
+      })
+      .eq('id', editingMedicine.id);
+
+    if (error) {
+      alert('Failed to update: ' + error.message);
+    } else {
+      setEditingMedicine(null);
+      mutate(); // refresh data
+    }
+  };
+
   if (isLoading) {
     return <PageLoadingSpinner />;
   }
 
   return (
-    
     <div className="space-y-6">
-      
-      {/* Add Medicine Button at the top right */}
       <div className="flex justify-end mb-2">
-        
-         {showAddDialog && (
-        <AddMedicineDialog onClose={() => setShowAddDialog(false)} />
-      )}
+        {showAddDialog && (
+          <AddMedicineDialog onClose={() => setShowAddDialog(false)} />
+        )}
       </div>
       <Card>
         <CardHeader>
@@ -81,11 +114,9 @@ const InventoryTable: React.FC = () => {
                 Monitor medicine stock levels and manage inventory
               </CardDescription>
             </div>
-            {/* Removed Add Medicine button from here */}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Search */}
           <div className="flex justify-between items-center">
             <Input
               placeholder="Search medicines..."
@@ -110,6 +141,7 @@ const InventoryTable: React.FC = () => {
                   <TableHead>Price</TableHead>
                   <TableHead>Expiry Date</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -117,7 +149,7 @@ const InventoryTable: React.FC = () => {
                   const stockStatus = getStockStatus(medicine);
                   const expiringSoon = isExpiringSoon(medicine.expiry_date);
                   const expired = isExpired(medicine.expiry_date);
-                  
+
                   return (
                     <TableRow key={medicine.id}>
                       <TableCell className="font-medium">{medicine.name}</TableCell>
@@ -148,6 +180,22 @@ const InventoryTable: React.FC = () => {
                         <Badge className={stockStatus.color}>
                           {stockStatus.label}
                         </Badge>
+                      </TableCell>
+                      <TableCell className="text-right space-x-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setEditingMedicine(medicine)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          onClick={() => handleDelete(medicine.id)}
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   );
@@ -181,7 +229,71 @@ const InventoryTable: React.FC = () => {
         </CardContent>
       </Card>
 
-     
+      {/* 🔹 Edit Medicine Dialog */}
+      {editingMedicine && (
+        <Dialog open={true} onOpenChange={() => setEditingMedicine(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Medicine</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleUpdate} className="space-y-4">
+              <div>
+                <Label>Name</Label>
+                <Input
+                  value={editingMedicine.name}
+                  onChange={(e) => setEditingMedicine({ ...editingMedicine, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Category</Label>
+                <Input
+                  value={editingMedicine.category}
+                  onChange={(e) => setEditingMedicine({ ...editingMedicine, category: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Stock</Label>
+                <Input
+                  type="number"
+                  value={editingMedicine.stock}
+                  onChange={(e) => setEditingMedicine({ ...editingMedicine, stock: Number(e.target.value) })}
+                />
+              </div>
+              <div>
+                <Label>Min Stock</Label>
+                <Input
+                  type="number"
+                  value={editingMedicine.min_stock}
+                  onChange={(e) => setEditingMedicine({ ...editingMedicine, min_stock: Number(e.target.value) })}
+                />
+              </div>
+              <div>
+                <Label>Price</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={editingMedicine.price}
+                  onChange={(e) => setEditingMedicine({ ...editingMedicine, price: Number(e.target.value) })}
+                />
+              </div>
+              <div>
+                <Label>Expiry Date</Label>
+                <Input
+                  type="date"
+                  value={editingMedicine.expiry_date}
+                  onChange={(e) => setEditingMedicine({ ...editingMedicine, expiry_date: e.target.value })}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setEditingMedicine(null)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Save Changes</Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
