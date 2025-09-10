@@ -140,7 +140,7 @@ const InventoryTable: React.FC = () => {
                   <TableHead>Min Stock</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead>Expiry Date</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Statuses</TableHead>
                   <TableHead className="text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
