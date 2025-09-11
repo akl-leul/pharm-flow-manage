@@ -8,7 +8,7 @@ import { useMedicines } from '../hooks/useMedicines';
 import { Package, AlertTriangle, ChevronLeft, ChevronRight, Pencil, Trash } from 'lucide-react';
 import AddMedicineDialog from './AddMedicineDialog';
 import { PageLoadingSpinner } from './LoadingSpinner';
-import { supabase } from '../lib/supabaseClient'; // ⬅️ Ensure this is your supabase client
+import { supabase } from '../integrations/supabase/client'; // ⬅️ Ensure this is your supabase client
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 
@@ -140,8 +140,8 @@ const InventoryTable: React.FC = () => {
                   <TableHead>Min Stock</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead>Expiry Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
+                  <TableHead>Statuses</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
