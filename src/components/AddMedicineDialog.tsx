@@ -124,16 +124,42 @@ const AddMedicineDialog: React.FC = () => {
             <Select value={formData.category} onValueChange={(value) => handleInputChange('category', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select category" />
+                
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Pain Relief">Pain Relief</SelectItem>
-                <SelectItem value="Antibiotic">Antibiotic</SelectItem>
-                <SelectItem value="Diabetes">Diabetes</SelectItem>
-                <SelectItem value="Heart">Heart</SelectItem>
-                <SelectItem value="Respiratory">Respiratory</SelectItem>
-                <SelectItem value="Digestive">Digestive</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
-              </SelectContent>
+             <SelectContent>
+  <SelectItem value="Allergy">Allergy</SelectItem>
+  <SelectItem value="Anesthetics">Anesthetics</SelectItem>
+  <SelectItem value="Anti-inflammatory">Anti-inflammatory</SelectItem>
+  <SelectItem value="Antibiotic">Antibiotic</SelectItem>
+  <SelectItem value="Antifungal">Antifungal</SelectItem>
+  <SelectItem value="Antiviral">Antiviral</SelectItem>
+  <SelectItem value="Cancer">Cancer</SelectItem>
+  <SelectItem value="Cholesterol">Cholesterol</SelectItem>
+  <SelectItem value="Diabetes">Diabetes</SelectItem>
+  <SelectItem value="Digestive">Digestive</SelectItem>
+  <SelectItem value="Ear">Ear</SelectItem>
+  <SelectItem value="Eye">Eye</SelectItem>
+  <SelectItem value="Gastrointestinal">Gastrointestinal</SelectItem>
+  <SelectItem value="Geriatric">Geriatric</SelectItem>
+  <SelectItem value="Heart">Heart</SelectItem>
+  <SelectItem value="Hormonal">Hormonal</SelectItem>
+  <SelectItem value="Hypertension">Hypertension</SelectItem>
+  <SelectItem value="Immunosuppressants">Immunosuppressants</SelectItem>
+  <SelectItem value="Infectious Disease">Infectious Disease</SelectItem>
+  <SelectItem value="Neurological">Neurological</SelectItem>
+ 
+  <SelectItem value="Pain Management">Pain Management</SelectItem>
+  <SelectItem value="Pain Relief">Pain Relief</SelectItem>
+  <SelectItem value="Pediatric">Pediatric</SelectItem>
+  <SelectItem value="Psychiatric">Psychiatric</SelectItem>
+  <SelectItem value="Reproductive Health">Reproductive Health</SelectItem>
+  <SelectItem value="Respiratory">Respiratory</SelectItem>
+  <SelectItem value="Skin">Skin</SelectItem>
+  <SelectItem value="Urinary">Urinary</SelectItem>
+  <SelectItem value="Vitamins & Supplements">Vitamins & Supplements</SelectItem>
+   <SelectItem value="Other">Other</SelectItem>
+</SelectContent>
+
             </Select>
           </div>
 

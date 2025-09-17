@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -6,9 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useSales, useDeleteSale } from '../hooks/useSales';
-import { Search, Edit, Trash2, Calendar } from 'lucide-react';
+import { Search, Edit, Trash2, Calendar, Download } from 'lucide-react';
 import EditSaleDialog from './EditSaleDialog';
 import { PageLoadingSpinner } from './LoadingSpinner';
+
+// Import xlsx for Excel export
+import * as XLSX from 'xlsx';
 
 const SalesTable: React.FC = () => {
   const { data: sales = [], isLoading } = useSales();
@@ -29,6 +31,31 @@ const SalesTable: React.FC = () => {
     }
   };
 
+  // Export filtered sales to Excel
+  const exportToExcel = () => {
+    if (filteredSales.length === 0) {
+      alert('No sales to export.');
+      return;
+    }
+
+    // Prepare data for Excel
+    const worksheetData = filteredSales.map(sale => ({
+      Medicine: sale.medicine_name,
+      Quantity: sale.quantity,
+      'Unit Price': Number(sale.price).toFixed(2),
+      Total: Number(sale.total_amount).toFixed(2),
+      Date: sale.sale_date,
+      Time: sale.sale_time,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Sales');
+
+    // Export file
+    XLSX.writeFile(workbook, 'Filtered_Sales.xlsx');
+  };
+
   if (isLoading) {
     return <PageLoadingSpinner />;
   }
@@ -43,9 +70,9 @@ const SalesTable: React.FC = () => {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
-            <div className="relative">
+        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+          <div className="flex flex-1 gap-4">
+            <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
                 placeholder="Search by medicine name..."
@@ -54,25 +81,35 @@ const SalesTable: React.FC = () => {
                 className="pl-10"
               />
             </div>
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-gray-400" />
+              <Input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="w-40"
+              />
+              {selectedDate && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedDate('')}
+                >
+                  Clear
+                </Button>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-gray-400" />
-            <Input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-40"
-            />
-            {selectedDate && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedDate('')}
-              >
-                Clear
-              </Button>
-            )}
-          </div>
+          {/* Export Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportToExcel}
+            className="flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Export Excel
+          </Button>
         </div>
 
         {/* Results count */}

@@ -1,16 +1,34 @@
-
-import React from 'react';
+import React, { useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useMedicines } from '../hooks/useMedicines';
 import { useSales } from '../hooks/useSales';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { TrendingUp, Package, DollarSign, AlertTriangle } from 'lucide-react';
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell
+} from 'recharts';
+import { TrendingUp, Package, DollarSign, AlertTriangle, FileText } from 'lucide-react';
+
+// PDF libraries
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
 const ReportsSection: React.FC = () => {
   const { data: sales = [], isLoading: salesLoading } = useSales();
   const { data: medicines = [], isLoading: medicinesLoading } = useMedicines();
+
+  const reportRef = useRef<HTMLDivElement>(null);
 
   if (salesLoading || medicinesLoading) {
     return (
@@ -24,12 +42,12 @@ const ReportsSection: React.FC = () => {
   const totalRevenue = sales.reduce((sum, sale) => sum + Number(sale.total_amount), 0);
   const totalSales = sales.length;
   const lowStockItems = medicines.filter(med => med.stock <= med.min_stock);
-  
+
   // Sales by category
   const categoryData = medicines.reduce((acc, medicine) => {
     const medicineSales = sales.filter(sale => sale.medicine_id === medicine.id);
     const categoryRevenue = medicineSales.reduce((sum, sale) => sum + Number(sale.total_amount), 0);
-    
+
     const existingCategory = acc.find(item => item.name === medicine.category);
     if (existingCategory) {
       existingCategory.value += categoryRevenue;
@@ -44,7 +62,7 @@ const ReportsSection: React.FC = () => {
     const medicineSales = sales.filter(sale => sale.medicine_id === medicine.id);
     const totalQuantity = medicineSales.reduce((sum, sale) => sum + sale.quantity, 0);
     const totalRevenue = medicineSales.reduce((sum, sale) => sum + Number(sale.total_amount), 0);
-    
+
     return {
       name: medicine.name,
       quantity: totalQuantity,
@@ -69,152 +87,204 @@ const ReportsSection: React.FC = () => {
     };
   });
 
+  // PDF Export handler
+  const handleExportPDF = async () => {
+    if (!reportRef.current) return;
+
+    const element = reportRef.current;
+
+    const canvas = await html2canvas(element, { scale: 2 });
+
+    const imgData = canvas.toDataURL('image/png');
+
+    const pdf = new jsPDF('p', 'pt', 'a4');
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+
+    // Calculate image height to maintain aspect ratio
+    const imgProps = pdf.getImageProperties(imgData);
+    const imgWidth = pdfWidth;
+    const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
+
+    let position = 0;
+
+    // If content is taller than page, split pages
+    if (imgHeight < pdfHeight) {
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+    } else {
+      let heightLeft = imgHeight;
+      while (heightLeft > 0) {
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pdfHeight;
+        position -= pdfHeight;
+        if (heightLeft > 0) {
+          pdf.addPage();
+        }
+      }
+    }
+
+    pdf.save('Report.pdf');
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">All time revenue</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Sales</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalSales}</div>
-            <p className="text-xs text-muted-foreground">Total transactions</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Medicines</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{medicines.length}</div>
-            <p className="text-xs text-muted-foreground">In inventory</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Low Stock</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{lowStockItems.length}</div>
-            <p className="text-xs text-muted-foreground">Items need restocking</p>
-          </CardContent>
-        </Card>
+    <>
+      {/* Export PDF Button */}
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={handleExportPDF}
+          className="inline-flex items-center gap-2 px-4 py-2 border rounded bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+        >
+          <FileText className="w-5 h-5" />
+          Export PDF
+        </button>
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Daily Sales Chart */}
+      <div ref={reportRef} className="space-y-6">
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
+              <p className="text-xs text-muted-foreground">All time revenue</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Sales</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{totalSales}</div>
+              <p className="text-xs text-muted-foreground">Total transactions</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Medicines</CardTitle>
+              <Package className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{medicines.length}</div>
+              <p className="text-xs text-muted-foreground">In inventory</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Low Stock</CardTitle>
+              <AlertTriangle className="h-4 w-4 text-red-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-600">{lowStockItems.length}</div>
+              <p className="text-xs text-muted-foreground">Items need restocking</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Daily Sales Chart as LineChart */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Daily Sales (Last 7 Days)</CardTitle>
+              <CardDescription>Revenue and number of sales per day</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={dailySalesData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="revenue" stroke="#3B82F6" name="Revenue ($)" />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Category Distribution */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Sales by Category</CardTitle>
+              <CardDescription>Revenue distribution across medicine categories</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={categoryData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {categoryData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Revenue']} />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Top Selling Medicines */}
         <Card>
           <CardHeader>
-            <CardTitle>Daily Sales (Last 7 Days)</CardTitle>
-            <CardDescription>Revenue and number of sales per day</CardDescription>
+            <CardTitle>Top Selling Medicines</CardTitle>
+            <CardDescription>Best performing medicines by revenue</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={dailySalesData}>
+              <BarChart data={medicinesSalesData} layout="horizontal">
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
+                <XAxis type="number" />
+                <YAxis dataKey="name" type="category" width={120} />
                 <Tooltip />
-                <Bar dataKey="revenue" fill="#3B82F6" name="Revenue ($)" />
+                <Bar dataKey="revenue" fill="#10B981" name="Revenue ($)" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        {/* Category Distribution */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Sales by Category</CardTitle>
-            <CardDescription>Revenue distribution across medicine categories</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={categoryData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {categoryData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Revenue']} />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        {/* Low Stock Alert */}
+        {lowStockItems.length > 0 && (
+          <Card className="border-red-200 bg-red-50">
+            <CardHeader>
+              <CardTitle className="text-red-800 flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5" />
+                Low Stock Alert
+              </CardTitle>
+              <CardDescription className="text-red-600">
+                The following medicines are running low and need restocking
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {lowStockItems.map(medicine => (
+                  <div key={medicine.id} className="flex justify-between items-center p-2 bg-white rounded border">
+                    <span className="font-medium">{medicine.name}</span>
+                    <span className="text-red-600 font-semibold">
+                      {medicine.stock} remaining (Min: {medicine.min_stock})
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
-
-      {/* Top Selling Medicines */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Top Selling Medicines</CardTitle>
-          <CardDescription>Best performing medicines by revenue</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={medicinesSalesData} layout="horizontal">
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" />
-              <YAxis dataKey="name" type="category" width={120} />
-              <Tooltip />
-              <Bar dataKey="revenue" fill="#10B981" name="Revenue ($)" />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
-      {/* Low Stock Alert */}
-      {lowStockItems.length > 0 && (
-        <Card className="border-red-200 bg-red-50">
-          <CardHeader>
-            <CardTitle className="text-red-800 flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5" />
-              Low Stock Alert
-            </CardTitle>
-            <CardDescription className="text-red-600">
-              The following medicines are running low and need restocking
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {lowStockItems.map(medicine => (
-                <div key={medicine.id} className="flex justify-between items-center p-2 bg-white rounded border">
-                  <span className="font-medium">{medicine.name}</span>
-                  <span className="text-red-600 font-semibold">
-                    {medicine.stock} remaining (Min: {medicine.min_stock})
-                  </span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+    </>
   );
 };
 
