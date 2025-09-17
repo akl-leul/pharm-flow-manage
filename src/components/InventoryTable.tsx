@@ -109,7 +109,7 @@ const InventoryTable: React.FC = () => {
     if (error) {
       alert('Failed to delete: ' + error.message);
     } else {
-      mutate(); // refresh data
+     await mutate(); // refresh data
       setDeleteConfirmOpen(false);
       setMedicineToDelete(null);
     }
@@ -392,7 +392,8 @@ const InventoryTable: React.FC = () => {
       )}
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+     <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Confirm Delete</DialogTitle>
