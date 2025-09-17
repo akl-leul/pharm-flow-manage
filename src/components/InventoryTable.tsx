@@ -222,8 +222,8 @@ const InventoryTable: React.FC = () => {
                   const expired = isExpired(medicine.expiry_date);
 
                   return (
-                    <TableRow key={medicine.id}  >
-  
+                    <TableRow key={medicine.id} className="even:bg-gray-300 hover:bg-gray-100"
+ >
                       <TableCell className="font-medium">{medicine.name}</TableCell>
                       <TableCell>{medicine.category}</TableCell>
                       <TableCell>
