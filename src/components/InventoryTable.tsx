@@ -215,14 +215,15 @@ const InventoryTable: React.FC = () => {
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
+              <TableBody >
                 {paginatedMedicines.map((medicine) => {
                   const stockStatus = getStockStatus(medicine);
                   const expiringSoon = isExpiringSoon(medicine.expiry_date);
                   const expired = isExpired(medicine.expiry_date);
 
                   return (
-                    <TableRow key={medicine.id}>
+                    <TableRow key={medicine.id}  >
+  
                       <TableCell className="font-medium">{medicine.name}</TableCell>
                       <TableCell>{medicine.category}</TableCell>
                       <TableCell>
