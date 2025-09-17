@@ -57,8 +57,8 @@ const Dashboard: React.FC = () => {
                   <TrendingUp className="h-4 w-4 text-white" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-gray-900">${totalSales.toFixed(2)}</div>
-                  <p className="text-xs text-white-600">
+                  <div className="text-2xl font-bold text-white">${totalSales.toFixed(2)}</div>
+                  <p className="text-xs text-white">
                     {sales.length} transactions
                   </p>
                 </CardContent>
@@ -90,9 +90,9 @@ const Dashboard: React.FC = () => {
                 </CardContent>
               </Card>
               
-              <Card className="transition-all duration-200 hover:shadow-lg hover:scale-105 border border-rose-300 bg-red">
+              <Card className="transition-all duration-200 hover:shadow-lg hover:scale-105 border border-rose-300">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-rose">Low Stock</CardTitle>
+                  <CardTitle className="text-sm font-medium text-rose-700">Low Stock</CardTitle>
                   <AlertTriangle className="h-4 w-4 text-rose-600" />
                 </CardHeader>
                 <CardContent>
