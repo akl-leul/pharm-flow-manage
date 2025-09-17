@@ -62,11 +62,11 @@ export function AppSidebar({ activeTab, onTabChange }: AppSidebarProps) {
     <Sidebar className="border-r bg-sidebar">
       <SidebarHeader className="border-b p-4">
         <div className="flex items-center gap-3">
-          <div className="bg-blue-600 p-2 rounded-lg">
-            <Pill className="h-6 w-6 text-white" />
+          <div className="bg-blue-300 p-2 rounded-lg">
+            <Pill className="h-6 w-6 text-blue" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-sidebar-foreground">PharmaCare</h1>
+            <h1 className="text-lg font-bold text-sidebar-foreground">PharmaFlow</h1>
             <p className="text-xs text-muted-foreground">Admin Dashboard</p>
           </div>
         </div>
@@ -97,11 +97,7 @@ export function AppSidebar({ activeTab, onTabChange }: AppSidebarProps) {
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-
-      <SidebarFooter className="border-t p-4">
+             <SidebarFooter className="border-t p-4">
         <Button 
           variant="outline" 
           onClick={logout}
@@ -111,6 +107,11 @@ export function AppSidebar({ activeTab, onTabChange }: AppSidebarProps) {
           Logout
         </Button>
       </SidebarFooter>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+     
     </Sidebar>
   );
 }

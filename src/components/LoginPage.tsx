@@ -32,7 +32,7 @@ const LoginPage: React.FC = () => {
               <Pill className="h-8 w-8 text-white" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">PharmaCare</h1>
+          <h1 className="text-3xl font-bold text-gray-900">PharmaFlow</h1>
           <p className="text-gray-600 mt-2">Pharmacy Management System</p>
         </div>
 
