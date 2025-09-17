@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -52,53 +51,53 @@ const Dashboard: React.FC = () => {
           <div className="space-y-6 animate-fade-in">
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card className="transition-all duration-200 hover:shadow-lg hover:scale-105">
+              <Card className="transition-all duration-200 hover:shadow-lg hover:scale-105 border border-teal-200 bg-teal-500">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Sales</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium text-white">Total Sales</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-white" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">${totalSales.toFixed(2)}</div>
-                  <p className="text-xs text-muted-foreground">
+                  <div className="text-2xl font-bold text-gray-900">${totalSales.toFixed(2)}</div>
+                  <p className="text-xs text-white-600">
                     {sales.length} transactions
                   </p>
                 </CardContent>
               </Card>
               
-              <Card className="transition-all duration-200 hover:shadow-lg hover:scale-105">
+              <Card className="transition-all duration-200 hover:shadow-lg hover:scale-105 border border-cyan-200 bg-cyan-500">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Today's Sales</CardTitle>
-                  <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium text-white">Today's Sales</CardTitle>
+                  <ShoppingCart className="h-4 w-4 text-white" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{todaySales.length}</div>
-                  <p className="text-xs text-muted-foreground">
+                  <div className="text-2xl font-bold text-white">{todaySales.length}</div>
+                  <p className="text-xs text-white">
                     ${todaySales.reduce((sum, sale) => sum + Number(sale.total_amount), 0).toFixed(2)} revenue
                   </p>
                 </CardContent>
               </Card>
               
-              <Card className="transition-all duration-200 hover:shadow-lg hover:scale-105">
+              <Card className="transition-all duration-200 hover:shadow-lg hover:scale-105 border border-blue-200 bg-blue-800">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Medicines</CardTitle>
-                  <Package className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium text-white">Medicines</CardTitle>
+                  <Package className="h-4 w-4 text-white" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{medicines.length}</div>
-                  <p className="text-xs text-muted-foreground">
+                  <div className="text-2xl font-bold text-white">{medicines.length}</div>
+                  <p className="text-xs text-white">
                     In inventory
                   </p>
                 </CardContent>
               </Card>
               
-              <Card className="transition-all duration-200 hover:shadow-lg hover:scale-105">
+              <Card className="transition-all duration-200 hover:shadow-lg hover:scale-105 border border-rose-300 bg-red">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Low Stock</CardTitle>
-                  <AlertTriangle className="h-4 w-4 text-red-500" />
+                  <CardTitle className="text-sm font-medium text-rose">Low Stock</CardTitle>
+                  <AlertTriangle className="h-4 w-4 text-rose-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-red-600">{lowStockMedicines.length}</div>
-                  <p className="text-xs text-muted-foreground">
+                  <div className="text-2xl font-bold text-rose-700">{lowStockMedicines.length}</div>
+                  <p className="text-xs text-rose-500">
                     Need restocking
                   </p>
                 </CardContent>
@@ -106,23 +105,23 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* Quick Actions */}
-            <Card className="transition-all duration-200 hover:shadow-lg">
+            <Card className="transition-all duration-200 hover:shadow-lg border border-gray-200">
               <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-                <CardDescription>Frequently used actions for daily operations</CardDescription>
+                <CardTitle className="text-teal-800">Quick Actions</CardTitle>
+                <CardDescription className="text-teal-600">Frequently used actions for daily operations</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Button 
-                    className="h-20 flex flex-col gap-2 bg-blue-600 hover:bg-blue-700 transition-all duration-200 hover:scale-105"
+                    className="h-20 flex flex-col gap-2 bg-teal-600 hover:bg-teal-700 transition-all duration-200 hover:scale-105"
                     onClick={() => handleTabChange('sales')}
                   >
-                    <Plus className="h-6 w-6" />
-                    Add New Sale
+                    <Plus className="h-6 w-6 text-white" />
+                    <span className="text-white">Add New Sale</span>
                   </Button>
                   <Button 
                     variant="outline" 
-                    className="h-20 flex flex-col gap-2 transition-all duration-200 hover:scale-105"
+                    className="h-20 flex flex-col gap-2 border-teal-600 text-teal-600 hover:bg-teal-100 hover:text-teal-800 transition-all duration-200 hover:scale-105"
                     onClick={() => handleTabChange('inventory')}
                   >
                     <Package className="h-6 w-6" />
@@ -130,7 +129,7 @@ const Dashboard: React.FC = () => {
                   </Button>
                   <Button 
                     variant="outline" 
-                    className="h-20 flex flex-col gap-2 transition-all duration-200 hover:scale-105"
+                    className="h-20 flex flex-col gap-2 border-teal-600 text-teal-600 hover:bg-teal-100 hover:text-teal-800 transition-all duration-200 hover:scale-105"
                     onClick={() => handleTabChange('reports')}
                   >
                     <TrendingUp className="h-6 w-6" />
@@ -142,22 +141,22 @@ const Dashboard: React.FC = () => {
 
             {/* Low Stock Alert */}
             {lowStockMedicines.length > 0 && (
-              <Card className="border-red-200 bg-red-50 transition-all duration-200 hover:shadow-lg animate-fade-in">
+              <Card className="border-rose-300 bg-rose-50 transition-all duration-200 hover:shadow-lg animate-fade-in">
                 <CardHeader>
-                  <CardTitle className="text-red-800 flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5" />
+                  <CardTitle className="text-rose-800 flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-rose-700" />
                     Low Stock Alert
                   </CardTitle>
-                  <CardDescription className="text-red-600">
+                  <CardDescription className="text-rose-600">
                     The following medicines are running low and need restocking
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
                     {lowStockMedicines.map(medicine => (
-                      <div key={medicine.id} className="flex justify-between items-center p-2 bg-white rounded border transition-all duration-200 hover:shadow-sm">
-                        <span className="font-medium">{medicine.name}</span>
-                        <span className="text-red-600 font-semibold">
+                      <div key={medicine.id} className="flex justify-between items-center p-2 bg-white rounded border border-rose-200 transition-all duration-200 hover:shadow-sm">
+                        <span className="font-medium text-rose-800">{medicine.name}</span>
+                        <span className="text-rose-700 font-semibold">
                           {medicine.stock} remaining (Min: {medicine.min_stock})
                         </span>
                       </div>
@@ -200,16 +199,16 @@ const Dashboard: React.FC = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gray-50">
+      <div className="min-h-screen flex w-full bg-teal-50">
         <AppSidebar activeTab={activeTab} onTabChange={handleTabChange} />
         <SidebarInset className="flex-1">
           {/* Header */}
-          <header className="bg-white shadow-sm border-b sticky top-0 z-10">
+          <header className="bg-white shadow-sm border-b border-teal-200 sticky top-0 z-10">
             <div className="flex items-center gap-4 h-16 px-6">
-              <SidebarTrigger className="transition-all duration-200 hover:scale-110" />
+              <SidebarTrigger className="transition-all duration-200 hover:scale-110 text-teal-600" />
               <div className="flex-1">
-                <h2 className="text-xl font-semibold capitalize">{activeTab}</h2>
-                <p className="text-sm text-muted-foreground">
+                <h2 className="text-xl font-semibold capitalize text-teal-900">{activeTab}</h2>
+                <p className="text-sm text-teal-700">
                   {activeTab === 'overview' && 'Dashboard overview and quick actions'}
                   {activeTab === 'sales' && 'Manage sales transactions'}
                   {activeTab === 'inventory' && 'Manage medicine inventory'}
