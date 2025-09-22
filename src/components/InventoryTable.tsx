@@ -241,7 +241,7 @@ const InventoryTable: React.FC = () => {
                         </div>
                       </TableCell>
                       <TableCell>{medicine.min_stock}</TableCell>
-                      <TableCell>${Number(medicine.price).toFixed(2)}</TableCell>
+                      <TableCell>ETB {Number(medicine.price).toFixed(2)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <span
@@ -360,7 +360,7 @@ const InventoryTable: React.FC = () => {
                 />
               </div>
               <div>
-                <Label>Price</Label>
+                <Label>Price (ETB)</Label>
                 <Input
                   type="number"
                   step="0.01"

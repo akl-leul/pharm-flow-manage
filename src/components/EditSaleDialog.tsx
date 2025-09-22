@@ -85,13 +85,13 @@ const EditSaleDialog: React.FC<EditSaleDialogProps> = ({ saleId, onClose }) => {
 
           <div className="space-y-2">
             <Label>Unit Price</Label>
-            <Input value={`$${Number(sale.price).toFixed(2)}`} disabled />
+            <Input value={`ETB ${Number(sale.price).toFixed(2)}`} disabled />
           </div>
 
           <div className="space-y-2">
             <Label>Total Amount</Label>
             <Input 
-              value={`$${(Number(sale.price) * parseInt(quantity || '0')).toFixed(2)}`} 
+              value={`ETB ${(Number(sale.price) * parseInt(quantity || '0')).toFixed(2)}`} 
               disabled 
             />
           </div>

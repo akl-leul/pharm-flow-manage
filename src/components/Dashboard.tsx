@@ -57,7 +57,7 @@ const Dashboard: React.FC = () => {
                   <TrendingUp className="h-4 w-4 text-white" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-white">${totalSales.toFixed(2)}</div>
+                  <div className="text-2xl font-bold text-white">ETB {totalSales.toFixed(2)}</div>
                   <p className="text-xs text-white">
                     {sales.length} transactions
                   </p>
@@ -72,7 +72,7 @@ const Dashboard: React.FC = () => {
                 <CardContent>
                   <div className="text-2xl font-bold text-white">{todaySales.length}</div>
                   <p className="text-xs text-white">
-                    ${todaySales.reduce((sum, sale) => sum + Number(sale.total_amount), 0).toFixed(2)} revenue
+                    ETB {todaySales.reduce((sum, sale) => sum + Number(sale.total_amount), 0).toFixed(2)} revenue
                   </p>
                 </CardContent>
               </Card>

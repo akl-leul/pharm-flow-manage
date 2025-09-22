@@ -148,7 +148,7 @@ const ReportsSection: React.FC = () => {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
+              <div className="text-2xl font-bold">ETB {totalRevenue.toFixed(2)}</div>
               <p className="text-xs text-muted-foreground">All time revenue</p>
             </CardContent>
           </Card>

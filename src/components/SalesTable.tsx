@@ -119,7 +119,7 @@ const SalesTable: React.FC = () => {
           </p>
           {filteredSales.length > 0 && (
             <Badge variant="secondary">
-              Total: ${filteredSales.reduce((sum, sale) => sum + Number(sale.total_amount), 0).toFixed(2)}
+              Total: ETB {filteredSales.reduce((sum, sale) => sum + Number(sale.total_amount), 0).toFixed(2)}
             </Badge>
           )}
         </div>
@@ -150,10 +150,10 @@ const SalesTable: React.FC = () => {
                   <TableRow key={sale.id}>
                     <TableCell className="font-medium">{sale.medicine_name}</TableCell>
                     <TableCell>{sale.quantity}</TableCell>
-                    <TableCell>${Number(sale.price).toFixed(2)}</TableCell>
+                    <TableCell>ETB {Number(sale.price).toFixed(2)}</TableCell>
                     <TableCell>
                       <Badge className="bg-green-100 text-green-800">
-                        ${Number(sale.total_amount).toFixed(2)}
+                        ETB {Number(sale.total_amount).toFixed(2)}
                       </Badge>
                     </TableCell>
                     <TableCell>{sale.sale_date}</TableCell>

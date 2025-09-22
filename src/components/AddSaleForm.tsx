@@ -136,7 +136,7 @@ const AddSaleForm: React.FC = () => {
                           <div className="flex-1">
                             <div className="font-medium">{medicine.name}</div>
                             <div className="text-sm text-muted-foreground">
-                              ${medicine.price} • Stock: {medicine.stock}
+                              ETB {medicine.price} • Stock: {medicine.stock}
                             </div>
                           </div>
                         </CommandItem>
@@ -177,7 +177,7 @@ const AddSaleForm: React.FC = () => {
                 </div>
                 <div className="flex justify-between">
                   <span>Price per unit:</span>
-                  <span>${selectedMedicineData.price.toFixed(2)}</span>
+                  <span>ETB {selectedMedicineData.price.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Quantity:</span>
@@ -185,7 +185,7 @@ const AddSaleForm: React.FC = () => {
                 </div>
                 <div className="flex justify-between border-t pt-1 font-medium text-blue-900">
                   <span>Total Amount:</span>
-                  <span>${totalAmount.toFixed(2)}</span>
+                  <span>ETB {totalAmount.toFixed(2)}</span>
                 </div>
               </div>
             </div>
