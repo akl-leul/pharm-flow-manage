@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,39 +10,61 @@ import { toast } from '@/hooks/use-toast';
 import { cn } from "@/lib/utils";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import QRCode from 'qrcode.react';
+
+interface TelebirrQRCodeData {
+  qrValue: string;
+  amount: number;
+  reference: string;
+}
 
 const AddSaleForm: React.FC = () => {
   const { data: medicines = [], isLoading: medicinesLoading } = useMedicines();
   const addSale = useAddSale();
   const updateStock = useUpdateMedicineStock();
-  const [selectedMedicine, setSelectedMedicine] = useState('');
-  const [quantity, setQuantity] = useState('');
+  const [selectedMedicine, setSelectedMedicine] = useState<string>('');
+  const [quantity, setQuantity] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [open, setOpen] = useState(false);
 
+  const [qrData, setQrData] = useState<TelebirrQRCodeData | null>(null);
+
   const selectedMedicineData = medicines.find(m => m.id === selectedMedicine);
-  const totalAmount = selectedMedicineData ? selectedMedicineData.price * parseInt(quantity || '0') : 0;
+  const quantityNum = parseInt(quantity || '0');
+  const totalAmount = selectedMedicineData ? selectedMedicineData.price * quantityNum : 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!selectedMedicine || !quantity) {
+
+    // Validation
+    if (!selectedMedicine) {
       toast({
         title: "Validation Error",
-        description: "Please fill in all required fields",
+        description: "Please select medicine",
         variant: "destructive"
       });
       return;
     }
-
-    const medicine = medicines.find(m => m.id === selectedMedicine);
-    if (!medicine) return;
-
-    const quantityNum = parseInt(quantity);
-    if (quantityNum > medicine.stock) {
+    if (!quantity || quantityNum < 1) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter a valid quantity",
+        variant: "destructive"
+      });
+      return;
+    }
+    if (!selectedMedicineData) {
+      toast({
+        title: "Error",
+        description: "Selected medicine not found",
+        variant: "destructive"
+      });
+      return;
+    }
+    if (quantityNum > selectedMedicineData.stock) {
       toast({
         title: "Insufficient Stock",
-        description: `Only ${medicine.stock} units available`,
+        description: `Only ${selectedMedicineData.stock} units available`,
         variant: "destructive"
       });
       return;
@@ -55,19 +76,54 @@ const AddSaleForm: React.FC = () => {
       const now = new Date();
       const saleData = {
         medicine_id: selectedMedicine,
-        medicine_name: medicine.name,
+        medicine_name: selectedMedicineData.name,
         quantity: quantityNum,
-        price: medicine.price,
+        price: selectedMedicineData.price,
         total_amount: totalAmount,
         sale_date: now.toISOString().split('T')[0],
         sale_time: now.toTimeString().split(' ')[0]
       };
 
-      await addSale.mutateAsync(saleData);
+      // Add sale record
+      const result = await addSale.mutateAsync(saleData);
+      // Update stock
+      await updateStock.mutateAsync({
+        medicine_id: selectedMedicine,
+        new_stock: selectedMedicineData.stock - quantityNum
+      });
+
+      // Build QR code value according to NBE / Telebirr spec
+      // Example: using interoperable QR standard format. You need to adapt:
+      // For instance: tags for merchant ID, amount, currency, country, reference etc.
+      // Here's a simplified version.
+
+      const merchantId = "YOUR_MERCHANT_ID";  // replace
+      const reference = result?.id?.toString() || `SALE-${Date.now()}`;
+
+      // This is a dummy formatted string. Replace with actual required format.
+      const qrValue = `ETQR|MID:${merchantId}|AMT:${totalAmount.toFixed(2)}|REF:${reference}`;
+
+      setQrData({
+        qrValue,
+        amount: totalAmount,
+        reference
+      });
+
+      // Reset form but keep QR visible
       setSelectedMedicine('');
       setQuantity('');
-    } catch (error) {
-      console.error('Error adding sale:', error);
+      toast({
+        title: "Sale Recorded",
+        description: `Sale recorded & QR generated for ETB ${totalAmount.toFixed(2)}`,
+        variant: "default"
+      });
+    } catch (err) {
+      console.error('Error recording sale or generating QR:', err);
+      toast({
+        title: "Error",
+        description: "Could not record sale / generate QR",
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -91,7 +147,7 @@ const AddSaleForm: React.FC = () => {
           Add New Sale
         </CardTitle>
         <CardDescription>
-          Record a new medicine sale and update inventory
+          Record a medicine sale & generate Telebirr QR
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -107,7 +163,7 @@ const AddSaleForm: React.FC = () => {
                   className="w-full justify-between"
                 >
                   {selectedMedicine
-                    ? medicines.find((medicine) => medicine.id === selectedMedicine)?.name
+                    ? selectedMedicineData?.name
                     : "Select medicine..."}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
@@ -136,7 +192,7 @@ const AddSaleForm: React.FC = () => {
                           <div className="flex-1">
                             <div className="font-medium">{medicine.name}</div>
                             <div className="text-sm text-muted-foreground">
-                              ETB {medicine.price} • Stock: {medicine.stock}
+                              ETB {medicine.price.toFixed(2)} • Stock: {medicine.stock}
                             </div>
                           </div>
                         </CommandItem>
@@ -162,12 +218,12 @@ const AddSaleForm: React.FC = () => {
             />
             {selectedMedicineData && (
               <p className="text-xs text-gray-500">
-                Available stock: {selectedMedicineData.stock} units
+                Available: {selectedMedicineData.stock} units
               </p>
             )}
           </div>
 
-          {selectedMedicineData && quantity && (
+          {selectedMedicineData && quantityNum >= 1 && (
             <div className="p-3 bg-blue-50 rounded-lg border">
               <h4 className="font-medium text-blue-900 mb-2">Sale Summary</h4>
               <div className="space-y-1 text-sm">
@@ -181,24 +237,40 @@ const AddSaleForm: React.FC = () => {
                 </div>
                 <div className="flex justify-between">
                   <span>Quantity:</span>
-                  <span>{quantity}</span>
+                  <span>{quantityNum}</span>
                 </div>
                 <div className="flex justify-between border-t pt-1 font-medium text-blue-900">
-                  <span>Total Amount:</span>
+                  <span>Total:</span>
                   <span>ETB {totalAmount.toFixed(2)}</span>
                 </div>
               </div>
             </div>
           )}
 
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             className="w-full"
             disabled={isSubmitting || !selectedMedicine || !quantity || addSale.isPending}
           >
-            {isSubmitting || addSale.isPending ? 'Recording Sale...' : 'Record Sale'}
+            {isSubmitting || addSale.isPending ? 'Processing...' : 'Submit Sale'}
           </Button>
         </form>
+
+        {qrData && (
+          <div className="mt-6 flex flex-col items-center gap-4">
+            <h4 className="font-semibold">Telebirr Payment QR Code</h4>
+            <QRCode
+              value={qrData.qrValue}
+              size={256}
+              level="H"
+              includeMargin={true}
+            />
+            <p className="text-sm text-gray-700">
+              Scan with Telebirr app to pay <strong>ETB {qrData.amount.toFixed(2)}</strong><br/>
+              Reference: {qrData.reference}
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from 'react'; 
 import {
   Card,
   CardContent,
@@ -54,21 +54,47 @@ const InventoryTable: React.FC = () => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [medicineToDelete, setMedicineToDelete] = useState<any | null>(null);
 
+  // Sorting states
+  const [sortField, setSortField] = useState<'name' | 'category' | 'stock' | 'price' | 'expiry_date'>('name');
+  const [sortOrderAsc, setSortOrderAsc] = useState(true);
+
   const filteredMedicines = medicines.filter(
     (medicine) =>
       medicine.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       medicine.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const totalPages = Math.ceil(filteredMedicines.length / PAGE_SIZE);
-  const paginatedMedicines = filteredMedicines.slice(
+  // Sort filtered medicines
+  const sortedMedicines = [...filteredMedicines].sort((a, b) => {
+    let aVal: any = a[sortField];
+    let bVal: any = b[sortField];
+
+    // Handle number comparison for stock and price
+    if (sortField === 'stock' || sortField === 'price') {
+      aVal = Number(aVal);
+      bVal = Number(bVal);
+    }
+
+    // Handle date comparison for expiry_date
+    if (sortField === 'expiry_date') {
+      aVal = new Date(aVal).getTime();
+      bVal = new Date(bVal).getTime();
+    }
+
+    if (aVal < bVal) return sortOrderAsc ? -1 : 1;
+    if (aVal > bVal) return sortOrderAsc ? 1 : -1;
+    return 0;
+  });
+
+  const totalPages = Math.ceil(sortedMedicines.length / PAGE_SIZE);
+  const paginatedMedicines = sortedMedicines.slice(
     (currentPage - 1) * PAGE_SIZE,
     currentPage * PAGE_SIZE
   );
 
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery]);
+  }, [searchQuery, sortField, sortOrderAsc]);
 
   const getStockStatus = (medicine: any) => {
     if (medicine.stock === 0)
@@ -109,7 +135,7 @@ const InventoryTable: React.FC = () => {
     if (error) {
       alert('Failed to delete: ' + error.message);
     } else {
-     await mutate(); // refresh data
+      await mutate(); // refresh data
       setDeleteConfirmOpen(false);
       setMedicineToDelete(null);
     }
@@ -190,15 +216,45 @@ const InventoryTable: React.FC = () => {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex justify-between items-center">
-            <Input
-              placeholder="Search medicines..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="max-w-sm"
-            />
-            <p className="text-sm text-gray-600">{filteredMedicines.length} medicines</p>
-          </div>
+          <div className="flex flex-wrap justify-between items-center gap-4">
+  {/* Search input on the left */}
+  <div className="flex-1 min-w-[300px] max-w-[700px]">
+    <Input
+      placeholder="Search medicines..."
+      value={searchQuery}
+      onChange={(e) => setSearchQuery(e.target.value)}
+      className="w-full h-11 text-base px-4 border border-gray-300 rounded-md"
+    />
+  </div>
+
+  {/* Sorting controls and count on the right */}
+  <div className="flex items-center gap-4 flex-wrap justify-end">
+    <select
+      className="border border-gray-300 rounded-md px-3 py-2 text-sm w-48"
+      value={sortField}
+      onChange={(e) => setSortField(e.target.value as any)}
+    >
+      <option value="name">Name</option>
+      <option value="category">Category</option>
+      <option value="stock">Current Stock</option>
+      <option value="price">Price</option>
+      <option value="expiry_date">Expiry Date</option>
+    </select>
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={() => setSortOrderAsc(!sortOrderAsc)}
+      title={`Sort ${sortOrderAsc ? 'Ascending' : 'Descending'}`}
+      className="border border-gray-300 rounded-md"
+    >
+      {sortOrderAsc ? '↑' : '↓'}
+    </Button>
+    <p className="text-sm text-gray-600 whitespace-nowrap">
+      {filteredMedicines.length} medicines
+    </p>
+  </div>
+</div>
+
 
           {/* Table */}
           <div className="rounded-md border">
@@ -223,7 +279,7 @@ const InventoryTable: React.FC = () => {
 
                   return (
                     <TableRow key={medicine.id} className="even:bg-gray-300 hover:bg-gray-100"
- >
+                  >
                       <TableCell className="font-medium">{medicine.name}</TableCell>
                       <TableCell>{medicine.category}</TableCell>
                       <TableCell>

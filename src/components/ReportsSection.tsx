@@ -14,15 +14,19 @@ import {
   ResponsiveContainer,
   PieChart,
   Pie,
-  Cell
+  Cell,
+  Legend,
 } from 'recharts';
 import { TrendingUp, Package, DollarSign, AlertTriangle, FileText } from 'lucide-react';
-
-// PDF libraries
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+const COLORS = [
+  '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8',
+  '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+  '#C9CBCF', '#8DD1E1', '#A4DE6C', '#D0ED57', '#FF9F40',
+  '#FF6B6B', '#6B5B95', '#FFD700', '#2E8B57', '#40E0D0',
+];
 
 const ReportsSection: React.FC = () => {
   const { data: sales = [], isLoading: salesLoading } = useSales();
@@ -38,12 +42,10 @@ const ReportsSection: React.FC = () => {
     );
   }
 
-  // Calculate metrics
   const totalRevenue = sales.reduce((sum, sale) => sum + Number(sale.total_amount), 0);
   const totalSales = sales.length;
   const lowStockItems = medicines.filter(med => med.stock <= med.min_stock);
 
-  // Sales by category
   const categoryData = medicines.reduce((acc, medicine) => {
     const medicineSales = sales.filter(sale => sale.medicine_id === medicine.id);
     const categoryRevenue = medicineSales.reduce((sum, sale) => sum + Number(sale.total_amount), 0);
@@ -57,7 +59,6 @@ const ReportsSection: React.FC = () => {
     return acc;
   }, [] as { name: string; value: number }[]);
 
-  // Top selling medicines
   const medicinesSalesData = medicines.map(medicine => {
     const medicineSales = sales.filter(sale => sale.medicine_id === medicine.id);
     const totalQuantity = medicineSales.reduce((sum, sale) => sum + sale.quantity, 0);
@@ -70,7 +71,6 @@ const ReportsSection: React.FC = () => {
     };
   }).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
 
-  // Daily sales (last 7 days)
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const date = new Date();
     date.setDate(date.getDate() - i);
@@ -87,28 +87,18 @@ const ReportsSection: React.FC = () => {
     };
   });
 
-  // PDF Export handler
   const handleExportPDF = async () => {
     if (!reportRef.current) return;
-
     const element = reportRef.current;
-
     const canvas = await html2canvas(element, { scale: 2 });
-
     const imgData = canvas.toDataURL('image/png');
-
     const pdf = new jsPDF('p', 'pt', 'a4');
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = pdf.internal.pageSize.getHeight();
-
-    // Calculate image height to maintain aspect ratio
     const imgProps = pdf.getImageProperties(imgData);
     const imgWidth = pdfWidth;
     const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
-
     let position = 0;
-
-    // If content is taller than page, split pages
     if (imgHeight < pdfHeight) {
       pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
     } else {
@@ -122,13 +112,11 @@ const ReportsSection: React.FC = () => {
         }
       }
     }
-
     pdf.save('Report.pdf');
   };
 
   return (
     <>
-      {/* Export PDF Button */}
       <div className="flex justify-end mb-4">
         <button
           onClick={handleExportPDF}
@@ -139,57 +127,59 @@ const ReportsSection: React.FC = () => {
         </button>
       </div>
 
-      <div ref={reportRef} className="space-y-6">
+      <div ref={reportRef} className="space-y-6"> 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card className="bg-green-100 text-green-700">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <DollarSign className="h-5 w-5" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">ETB {totalRevenue.toFixed(2)}</div>
-              <p className="text-xs text-muted-foreground">All time revenue</p>
+              <p className="text-xs text-green-700">All time revenue</p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card className="bg-blue-100 text-blue-700">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Total Sales</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <TrendingUp className="h-5 w-5" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{totalSales}</div>
-              <p className="text-xs text-muted-foreground">Total transactions</p>
+              <p className="text-xs">Total transactions</p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card className="bg-yellow-100 text-yellow-700">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Medicines</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
+              <Package className="h-5 w-5" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{medicines.length}</div>
-              <p className="text-xs text-muted-foreground">In inventory</p>
+              <p className="text-xs">In inventory</p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card className="bg-red-100 text-red-700">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Low Stock</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-red-500" />
+              <AlertTriangle className="h-5 w-5" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">{lowStockItems.length}</div>
-              <p className="text-xs text-muted-foreground">Items need restocking</p>
+              <div className="text-2xl font-bold">{lowStockItems.length}</div>
+              <p className="text-xs">Items need restocking</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Charts */}
+        
+
+        {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Daily Sales Chart as LineChart */}
+          {/* LineChart (Daily Sales) */}
           <Card>
             <CardHeader>
               <CardTitle>Daily Sales (Last 7 Days)</CardTitle>
@@ -202,19 +192,21 @@ const ReportsSection: React.FC = () => {
                   <XAxis dataKey="date" />
                   <YAxis />
                   <Tooltip />
-                  <Line type="monotone" dataKey="revenue" stroke="#3B82F6" name="Revenue ($)" />
+                  <Legend />
+                  <Line type="monotone" dataKey="revenue" stroke="#3B82F6" name="Revenue (ETB)" />
+                  <Line type="monotone" dataKey="sales" stroke="#10B981" name="Sales Count" />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
 
-          {/* Category Distribution */}
+          {/* Sales by Category: PieChart + Bump Style */}
           <Card>
             <CardHeader>
               <CardTitle>Sales by Category</CardTitle>
               <CardDescription>Revenue distribution across medicine categories</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className='grid grid-cols-1'>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
@@ -231,29 +223,75 @@ const ReportsSection: React.FC = () => {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Revenue']} />
+                  <Tooltip formatter={(value) => [`ETB ${Number(value).toFixed(2)}`, 'Revenue']} />
                 </PieChart>
               </ResponsiveContainer>
+
+              {/* Simulated Bump Chart Below */}
+              <div className="mt-6 h-[200px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={categoryData.map((d, i) => ({ ...d, rank: i + 1 }))}
+                    margin={{ top: 10, right: 30, left: 20, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis type="number" reversed domain={[1, categoryData.length]} />
+                    <Tooltip />
+                    <Line
+                      type="monotone"
+                      dataKey="rank"
+                      stroke="#EF4444"
+                      strokeWidth={2}
+                      dot={{ r: 6, fill: '#EF4444' }}
+                      name="Revenue Rank"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Top Selling Medicines */}
+        {/* Top Selling Medicines: Bar + Pie */}
         <Card>
           <CardHeader>
             <CardTitle>Top Selling Medicines</CardTitle>
             <CardDescription>Best performing medicines by revenue</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className='grid grid-cols-2'>
+
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={medicinesSalesData} layout="horizontal">
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis type="number" />
                 <YAxis dataKey="name" type="category" width={120} />
                 <Tooltip />
-                <Bar dataKey="revenue" fill="#10B981" name="Revenue ($)" />
+                <Bar dataKey="revenue" fill="#10B981" name="Revenue (ETB)" />
               </BarChart>
             </ResponsiveContainer>
+
+            {/* Pie Chart for same data */}
+            <div className="mt-6 h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={medicinesSalesData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="revenue"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {medicinesSalesData.map((entry, index) => (
+                      <Cell key={`cell-med-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => [`ETB ${Number(value).toFixed(2)}`, 'Revenue']} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
 
