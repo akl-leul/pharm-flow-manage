@@ -1,4 +1,4 @@
-import React, { useState } from 'react'; 
+import React, { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -35,10 +35,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-
 import * as XLSX from 'xlsx';
 
 const PAGE_SIZE = 15;
@@ -50,13 +48,17 @@ const InventoryTable: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [editingMedicine, setEditingMedicine] = useState<any | null>(null);
 
-  // State for delete confirmation dialog
+  // Sorting
+  const [sortField, setSortField] = useState<'name' | 'category' | 'stock' | 'price' | 'expiry_date'>('name');
+  const [sortOrderAsc, setSortOrderAsc] = useState(true);
+
+  // Single delete
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [medicineToDelete, setMedicineToDelete] = useState<any | null>(null);
 
-  // Sorting states
-  const [sortField, setSortField] = useState<'name' | 'category' | 'stock' | 'price' | 'expiry_date'>('name');
-  const [sortOrderAsc, setSortOrderAsc] = useState(true);
+  // Multi-select delete
+  const [selectedMedicines, setSelectedMedicines] = useState<any[]>([]);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
   const filteredMedicines = medicines.filter(
     (medicine) =>
@@ -64,18 +66,15 @@ const InventoryTable: React.FC = () => {
       medicine.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Sort filtered medicines
   const sortedMedicines = [...filteredMedicines].sort((a, b) => {
     let aVal: any = a[sortField];
     let bVal: any = b[sortField];
 
-    // Handle number comparison for stock and price
     if (sortField === 'stock' || sortField === 'price') {
       aVal = Number(aVal);
       bVal = Number(bVal);
     }
 
-    // Handle date comparison for expiry_date
     if (sortField === 'expiry_date') {
       aVal = new Date(aVal).getTime();
       bVal = new Date(bVal).getTime();
@@ -92,7 +91,7 @@ const InventoryTable: React.FC = () => {
     currentPage * PAGE_SIZE
   );
 
-  React.useEffect(() => {
+  useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, sortField, sortOrderAsc]);
 
@@ -107,66 +106,58 @@ const InventoryTable: React.FC = () => {
   const isExpiringSoon = (expiryDate: string) => {
     const expiry = new Date(expiryDate);
     const today = new Date();
-    const diffTime = expiry.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
     return diffDays <= 90 && diffDays > 0;
   };
 
-  const isExpired = (expiryDate: string) => {
-    const expiry = new Date(expiryDate);
-    const today = new Date();
-    return expiry < today;
+  const isExpired = (expiryDate: string) => new Date(expiryDate) < new Date();
+
+  const toggleSelectAll = () => {
+    if (selectedMedicines.length === paginatedMedicines.length) {
+      setSelectedMedicines([]);
+    } else {
+      setSelectedMedicines(paginatedMedicines);
+    }
   };
 
-  // Show confirmation dialog on delete click
+  const toggleSelectMedicine = (medicine: any) => {
+    setSelectedMedicines((prev) =>
+      prev.some((m) => m.id === medicine.id)
+        ? prev.filter((m) => m.id !== medicine.id)
+        : [...prev, medicine]
+    );
+  };
+
   const confirmDelete = (medicine: any) => {
     setMedicineToDelete(medicine);
     setDeleteConfirmOpen(true);
   };
 
-  // Actual delete after confirmation
   const handleDelete = async () => {
     if (!medicineToDelete) return;
 
-    const { error } = await supabase
-      .from('medicines')
-      .delete()
-      .eq('id', medicineToDelete.id);
-    if (error) {
-      alert('Failed to delete: ' + error.message);
-    } else {
-      await mutate(); // refresh data
+    const { error } = await supabase.from('medicines').delete().eq('id', medicineToDelete.id);
+    if (!error) {
+      await mutate();
       setDeleteConfirmOpen(false);
       setMedicineToDelete(null);
-    }
-  };
-
-  // Update medicine
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingMedicine) return;
-
-    const { error } = await supabase
-      .from('medicines')
-      .update({
-        name: editingMedicine.name,
-        category: editingMedicine.category,
-        stock: editingMedicine.stock,
-        min_stock: editingMedicine.min_stock,
-        price: editingMedicine.price,
-        expiry_date: editingMedicine.expiry_date,
-      })
-      .eq('id', editingMedicine.id);
-
-    if (error) {
-      alert('Failed to update: ' + error.message);
     } else {
-      setEditingMedicine(null);
-      mutate(); // refresh data
+      alert('Failed to delete: ' + error.message);
     }
   };
 
-  // Export filtered medicines to Excel
+  const handleBulkDelete = async () => {
+    const ids = selectedMedicines.map((m) => m.id);
+    const { error } = await supabase.from('medicines').delete().in('id', ids);
+    if (!error) {
+      await mutate();
+      setSelectedMedicines([]);
+      setBulkDeleteOpen(false);
+    } else {
+      alert('Failed to delete: ' + error.message);
+    }
+  };
+
   const handleExportExcel = () => {
     const exportData = filteredMedicines.map((m) => ({
       'Medicine Name': m.name,
@@ -181,142 +172,124 @@ const InventoryTable: React.FC = () => {
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Medicines');
-
     XLSX.writeFile(workbook, 'MedicinesInventory.xlsx');
   };
 
-  if (isLoading) {
-    return <PageLoadingSpinner />;
-  }
+  if (isLoading) return <PageLoadingSpinner />;
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end gap-3 mb-2">
-        <div>{showAddDialog && <AddMedicineDialog onClose={() => setShowAddDialog(false)} />}</div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleExportExcel}
-          className="flex items-center gap-2"
-        >
-          <Download className="h-4 w-4" />
-          Export as Excel
-        </Button>
+      <div className="flex justify-between mb-2">
+        <div className="flex gap-2">
+          {showAddDialog && <AddMedicineDialog onClose={() => setShowAddDialog(false)} />}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportExcel}
+            className="flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Export as Excel
+          </Button>
+        </div>
+        {selectedMedicines.length > 0 && (
+          <Button
+            variant="destructive"
+            onClick={() => setBulkDeleteOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <Trash className="h-4 w-4" />
+            Delete Selected ({selectedMedicines.length})
+          </Button>
+        )}
       </div>
+
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5" />
-                Inventory Management
-              </CardTitle>
-              <CardDescription>Monitor medicine stock levels and manage inventory</CardDescription>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            Inventory Management
+          </CardTitle>
+          <CardDescription>Monitor medicine stock levels and manage inventory</CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-4">
+          {/* Filters */}
+          <div className="flex flex-wrap justify-between items-center gap-4">
+            <Input
+              placeholder="Search medicines..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full max-w-md"
+            />
+
+            <div className="flex gap-2 items-center">
+              <select
+                value={sortField}
+                onChange={(e) => setSortField(e.target.value as any)}
+                className="border rounded px-3 py-2 text-sm"
+              >
+                <option value="name">Name</option>
+                <option value="category">Category</option>
+                <option value="stock">Current Stock</option>
+                <option value="price">Price</option>
+                <option value="expiry_date">Expiry Date</option>
+              </select>
+              <Button onClick={() => setSortOrderAsc(!sortOrderAsc)} variant="outline" size="sm">
+                {sortOrderAsc ? '↑' : '↓'}
+              </Button>
+              <span className="text-sm">{filteredMedicines.length} medicines</span>
             </div>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap justify-between items-center gap-4">
-  {/* Search input on the left */}
-  <div className="flex-1 min-w-[300px] max-w-[700px]">
-    <Input
-      placeholder="Search medicines..."
-      value={searchQuery}
-      onChange={(e) => setSearchQuery(e.target.value)}
-      className="w-full h-11 text-base px-4 border border-gray-300 rounded-md"
-    />
-  </div>
-
-  {/* Sorting controls and count on the right */}
-  <div className="flex items-center gap-4 flex-wrap justify-end">
-    <select
-      className="border border-gray-300 rounded-md px-3 py-2 text-sm w-48"
-      value={sortField}
-      onChange={(e) => setSortField(e.target.value as any)}
-    >
-      <option value="name">Name</option>
-      <option value="category">Category</option>
-      <option value="stock">Current Stock</option>
-      <option value="price">Price</option>
-      <option value="expiry_date">Expiry Date</option>
-    </select>
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={() => setSortOrderAsc(!sortOrderAsc)}
-      title={`Sort ${sortOrderAsc ? 'Ascending' : 'Descending'}`}
-      className="border border-gray-300 rounded-md"
-    >
-      {sortOrderAsc ? '↑' : '↓'}
-    </Button>
-    <p className="text-sm text-gray-600 whitespace-nowrap">
-      {filteredMedicines.length} medicines
-    </p>
-  </div>
-</div>
-
 
           {/* Table */}
           <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Medicine Name</TableHead>
+                  <TableHead>
+                    <input
+                      type="checkbox"
+                      checked={
+                        selectedMedicines.length === paginatedMedicines.length &&
+                        paginatedMedicines.length > 0
+                      }
+                      onChange={toggleSelectAll}
+                    />
+                  </TableHead>
+                  <TableHead>Name</TableHead>
                   <TableHead>Category</TableHead>
-                  <TableHead>Current Stock</TableHead>
+                  <TableHead>Stock</TableHead>
                   <TableHead>Min Stock</TableHead>
                   <TableHead>Price</TableHead>
-                  <TableHead>Expiry Date</TableHead>
-                  <TableHead>Statuses</TableHead>
+                  <TableHead>Expiry</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody >
+              <TableBody>
                 {paginatedMedicines.map((medicine) => {
+                  const isSelected = selectedMedicines.some((m) => m.id === medicine.id);
                   const stockStatus = getStockStatus(medicine);
-                  const expiringSoon = isExpiringSoon(medicine.expiry_date);
                   const expired = isExpired(medicine.expiry_date);
+                  const expiringSoon = isExpiringSoon(medicine.expiry_date);
 
                   return (
-                    <TableRow key={medicine.id} className="even:bg-gray-300 hover:bg-gray-100"
-                  >
-                      <TableCell className="font-medium">{medicine.name}</TableCell>
-                      <TableCell>{medicine.category}</TableCell>
+                    <TableRow key={medicine.id} className="even:bg-gray-100">
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={
-                              medicine.stock <= medicine.min_stock ? 'text-red-600 font-semibold' : ''
-                            }
-                          >
-                            {medicine.stock}
-                          </span>
-                          {medicine.stock <= medicine.min_stock && (
-                            <AlertTriangle className="h-4 w-4 text-red-500" />
-                          )}
-                        </div>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelectMedicine(medicine)}
+                        />
                       </TableCell>
+                      <TableCell>{medicine.name}</TableCell>
+                      <TableCell>{medicine.category}</TableCell>
+                      <TableCell>{medicine.stock}</TableCell>
                       <TableCell>{medicine.min_stock}</TableCell>
-                      <TableCell>ETB {Number(medicine.price).toFixed(2)}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={
-                              expired
-                                ? 'text-red-600 font-semibold'
-                                : expiringSoon
-                                ? 'text-yellow-600'
-                                : ''
-                            }
-                          >
-                            {medicine.expiry_date}
-                          </span>
-                          {(expired || expiringSoon) && (
-                            <AlertTriangle
-                              className={`h-4 w-4 ${expired ? 'text-red-500' : 'text-yellow-500'}`}
-                            />
-                          )}
-                        </div>
+                      <TableCell>ETB {medicine.price.toFixed(2)}</TableCell>
+                      <TableCell className={expired ? 'text-red-600' : expiringSoon ? 'text-yellow-600' : ''}>
+                        {medicine.expiry_date}
                       </TableCell>
                       <TableCell>
                         <Badge className={stockStatus.color}>{stockStatus.label}</Badge>
@@ -344,24 +317,22 @@ const InventoryTable: React.FC = () => {
             </Table>
           </div>
 
-          {/* Pagination Controls */}
-          <div className="flex justify-end items-center gap-2 pt-2">
+          {/* Pagination */}
+          <div className="flex justify-end gap-2">
             <Button
               variant="outline"
               size="icon"
               disabled={currentPage === 1}
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              onClick={() => setCurrentPage((p) => p - 1)}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="text-sm">
-              Page {currentPage} of {totalPages || 1}
-            </span>
+            <span className="text-sm">Page {currentPage} of {totalPages || 1}</span>
             <Button
               variant="outline"
               size="icon"
               disabled={currentPage === totalPages || totalPages === 0}
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              onClick={() => setCurrentPage((p) => p + 1)}
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -369,94 +340,37 @@ const InventoryTable: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Edit Medicine Dialog */}
-      {editingMedicine && (
-        <Dialog open={true} onOpenChange={() => setEditingMedicine(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit Medicine</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleUpdate} className="space-y-4">
-              <div>
-                <Label>Name</Label>
-                <Input
-                  value={editingMedicine.name}
-                  onChange={(e) =>
-                    setEditingMedicine({ ...editingMedicine, name: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <Label>Category</Label>
-                <Input
-                  value={editingMedicine.category}
-                  onChange={(e) =>
-                    setEditingMedicine({ ...editingMedicine, category: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <Label>Stock</Label>
-                <Input
-                  type="number"
-                  value={editingMedicine.stock}
-                  onChange={(e) =>
-                    setEditingMedicine({ ...editingMedicine, stock: Number(e.target.value) })
-                  }
-                />
-              </div>
-              <div>
-                <Label>Min Stock</Label>
-                <Input
-                  type="number"
-                  value={editingMedicine.min_stock}
-                  onChange={(e) =>
-                    setEditingMedicine({ ...editingMedicine, min_stock: Number(e.target.value) })
-                  }
-                />
-              </div>
-              <div>
-                <Label>Price (ETB)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={editingMedicine.price}
-                  onChange={(e) =>
-                    setEditingMedicine({ ...editingMedicine, price: Number(e.target.value) })
-                  }
-                />
-              </div>
-              <div>
-                <Label>Expiry Date</Label>
-                <Input
-                  type="date"
-                  value={editingMedicine.expiry_date}
-                  onChange={(e) =>
-                    setEditingMedicine({ ...editingMedicine, expiry_date: e.target.value })
-                  }
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setEditingMedicine(null)}>
-                  Cancel
-                </Button>
-                <Button type="submit">Save Changes</Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      )}
+      {/* Bulk Delete Dialog */}
+      <Dialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Bulk Delete</DialogTitle>
+          </DialogHeader>
+          <p>The following medicines will be deleted:</p>
+          <ul className="list-disc pl-6 mt-2 text-sm text-gray-700">
+            {selectedMedicines.map((med) => (
+              <li key={med.id}>{med.name}</li>
+            ))}
+          </ul>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setBulkDeleteOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleBulkDelete}>
+              Delete All
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-     <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-
+      {/* Single Delete Dialog */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Confirm Delete</DialogTitle>
           </DialogHeader>
           <p>
-            Are you sure you want to delete{' '}
-            <strong>{medicineToDelete?.name}</strong>? This action cannot be undone.
+            Are you sure you want to delete <strong>{medicineToDelete?.name}</strong>? This action cannot be undone.
           </p>
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>

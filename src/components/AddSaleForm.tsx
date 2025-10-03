@@ -10,7 +10,7 @@ import { toast } from '@/hooks/use-toast';
 import { cn } from "@/lib/utils";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-// import QRCode from 'qrcode.react';
+import QRCode from 'qrcode.react';
 
 interface TelebirrQRCodeData {
   qrValue: string;
@@ -97,7 +97,7 @@ const AddSaleForm: React.FC = () => {
       // For instance: tags for merchant ID, amount, currency, country, reference etc.
       // Here's a simplified version.
 
-      const merchantId = "YOUR_MERCHANT_ID";  // replace
+      const merchantId = "1001805481";  // replace
       const reference = result?.id?.toString() || `SALE-${Date.now()}`;
 
       // This is a dummy formatted string. Replace with actual required format.
