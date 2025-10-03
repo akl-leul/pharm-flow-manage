@@ -10,7 +10,7 @@ import { toast } from '@/hooks/use-toast';
 import { cn } from "@/lib/utils";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import QRCode from 'qrcode.react';
+// import QRCode from 'qrcode.react';
 
 interface TelebirrQRCodeData {
   qrValue: string;
