@@ -52,7 +52,7 @@ const InventoryTable: React.FC = () => {
 
   // State for delete confirmation dialog
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  // Single delete state removed; replaced with multiple selection
+  // Set of selected medicine IDs
   const [selectedMedicines, setSelectedMedicines] = useState<Set<number>>(new Set());
 
   // Sorting states
@@ -70,13 +70,11 @@ const InventoryTable: React.FC = () => {
     let aVal: any = a[sortField];
     let bVal: any = b[sortField];
 
-    // Handle number comparison for stock and price
     if (sortField === 'stock' || sortField === 'price') {
       aVal = Number(aVal);
       bVal = Number(bVal);
     }
 
-    // Handle date comparison for expiry_date
     if (sortField === 'expiry_date') {
       aVal = new Date(aVal).getTime();
       bVal = new Date(bVal).getTime();
@@ -139,10 +137,8 @@ const InventoryTable: React.FC = () => {
     setSelectedMedicines((prev) => {
       const newSet = new Set(prev);
       if (allSelected) {
-        // Unselect all on this page
         currentPageIds.forEach((id) => newSet.delete(id));
       } else {
-        // Select all on this page
         currentPageIds.forEach((id) => newSet.add(id));
       }
       return newSet;
@@ -151,7 +147,7 @@ const InventoryTable: React.FC = () => {
 
   // Open confirm dialog for deleting selected medicines
   const openDeleteSelectedConfirm = () => {
-    if(selectedMedicines.size === 0) return;
+    if (selectedMedicines.size === 0) return;
     setDeleteConfirmOpen(true);
   };
 
@@ -164,9 +160,9 @@ const InventoryTable: React.FC = () => {
     if (error) {
       alert('Failed to delete: ' + error.message);
     } else {
-      await mutate(); // refresh data
+      await mutate(); // refresh data automatically
       setSelectedMedicines(new Set());
-      setDeleteConfirmOpen(false);
+      setDeleteConfirmOpen(false); // close dialog after confirm
     }
   };
 
@@ -190,8 +186,8 @@ const InventoryTable: React.FC = () => {
     if (error) {
       alert('Failed to update: ' + error.message);
     } else {
-      setEditingMedicine(null);
-      mutate(); // refresh data
+      setEditingMedicine(null); // close edit dialog immediately
+      await mutate(); // refresh data automatically
     }
   };
 
