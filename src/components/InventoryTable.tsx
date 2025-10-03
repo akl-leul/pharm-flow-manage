@@ -1,4 +1,5 @@
- import {
+import React, { useState } from 'react'; 
+import {
   Card,
   CardContent,
   CardDescription,
@@ -472,4 +473,3 @@ const InventoryTable: React.FC = () => {
 };
 
 export default InventoryTable;
- 
