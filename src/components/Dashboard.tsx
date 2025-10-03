@@ -344,20 +344,7 @@ const Dashboard: React.FC = () => {
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <Search className="absolute left-2 top-2 h-4 w-4 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search..."
-                    className="pl-8 pr-3 py-1.5 rounded-lg border text-sm focus:ring-1 focus:ring-teal-500"
-                  />
-                </div>
-                <Button variant="ghost" size="icon" className="relative">
-                  <Bell className="h-5 w-5 text-gray-600" />
-                  <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500"></span>
-                </Button>
-              </div>
+               
             </div>
           </header>
 

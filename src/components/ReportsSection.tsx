@@ -1,5 +1,11 @@
-import React, { useRef } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useRef, useState } from 'react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { useMedicines } from '../hooks/useMedicines';
 import { useSales } from '../hooks/useSales';
 import {
@@ -17,7 +23,14 @@ import {
   Cell,
   Legend,
 } from 'recharts';
-import { TrendingUp, Package, DollarSign, AlertTriangle, FileText } from 'lucide-react';
+import {
+  TrendingUp,
+  Package,
+  DollarSign,
+  AlertTriangle,
+  FileText,
+  X,
+} from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -28,16 +41,38 @@ const COLORS = [
   '#FF6B6B', '#6B5B95', '#FFD700', '#2E8B57', '#40E0D0',
 ];
 
+// Simple modal component for preview popup
+const Modal: React.FC<{open: boolean, onClose: () => void, children: React.ReactNode}> = ({ open, onClose, children }) => {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="bg-white rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-auto p-6 relative">
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 text-gray-600 hover:text-gray-900"
+          aria-label="Close"
+        >
+          <X size={24} />
+        </button>
+        {children}
+      </div>
+    </div>
+  );
+};
+
 const ReportsSection: React.FC = () => {
   const { data: sales = [], isLoading: salesLoading } = useSales();
   const { data: medicines = [], isLoading: medicinesLoading } = useMedicines();
 
   const reportRef = useRef<HTMLDivElement>(null);
 
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewImg, setPreviewImg] = useState<string | null>(null);
+
   if (salesLoading || medicinesLoading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
       </div>
     );
   }
@@ -49,7 +84,6 @@ const ReportsSection: React.FC = () => {
   const categoryData = medicines.reduce((acc, medicine) => {
     const medicineSales = sales.filter(sale => sale.medicine_id === medicine.id);
     const categoryRevenue = medicineSales.reduce((sum, sale) => sum + Number(sale.total_amount), 0);
-
     const existingCategory = acc.find(item => item.name === medicine.category);
     if (existingCategory) {
       existingCategory.value += categoryRevenue;
@@ -59,17 +93,19 @@ const ReportsSection: React.FC = () => {
     return acc;
   }, [] as { name: string; value: number }[]);
 
-  const medicinesSalesData = medicines.map(medicine => {
-    const medicineSales = sales.filter(sale => sale.medicine_id === medicine.id);
-    const totalQuantity = medicineSales.reduce((sum, sale) => sum + sale.quantity, 0);
-    const totalRevenue = medicineSales.reduce((sum, sale) => sum + Number(sale.total_amount), 0);
-
-    return {
-      name: medicine.name,
-      quantity: totalQuantity,
-      revenue: totalRevenue
-    };
-  }).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+  const medicinesSalesData = medicines
+    .map(medicine => {
+      const medicineSales = sales.filter(sale => sale.medicine_id === medicine.id);
+      const totalQuantity = medicineSales.reduce((sum, sale) => sum + sale.quantity, 0);
+      const totalRevenue = medicineSales.reduce((sum, sale) => sum + Number(sale.total_amount), 0);
+      return {
+        name: medicine.name,
+        quantity: totalQuantity,
+        revenue: totalRevenue,
+      };
+    })
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 5);
 
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const date = new Date();
@@ -83,28 +119,37 @@ const ReportsSection: React.FC = () => {
     return {
       date: new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
       revenue: revenue,
-      sales: daySales.length
+      sales: daySales.length,
     };
   });
 
-  const handleExportPDF = async () => {
+  // Create image preview for modal
+  const handlePreviewExport = async () => {
     if (!reportRef.current) return;
     const element = reportRef.current;
     const canvas = await html2canvas(element, { scale: 2 });
     const imgData = canvas.toDataURL('image/png');
+    setPreviewImg(imgData);
+    setPreviewOpen(true);
+  };
+
+  // Generate & save PDF after user confirms
+  const handleDownloadPDF = () => {
+    if (!previewImg) return;
     const pdf = new jsPDF('p', 'pt', 'a4');
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = pdf.internal.pageSize.getHeight();
-    const imgProps = pdf.getImageProperties(imgData);
+    const imgProps = pdf.getImageProperties(previewImg);
     const imgWidth = pdfWidth;
     const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
+
     let position = 0;
     if (imgHeight < pdfHeight) {
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      pdf.addImage(previewImg, 'PNG', 0, position, imgWidth, imgHeight);
     } else {
       let heightLeft = imgHeight;
       while (heightLeft > 0) {
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        pdf.addImage(previewImg, 'PNG', 0, position, imgWidth, imgHeight);
         heightLeft -= pdfHeight;
         position -= pdfHeight;
         if (heightLeft > 0) {
@@ -113,21 +158,23 @@ const ReportsSection: React.FC = () => {
       }
     }
     pdf.save('Report.pdf');
+    setPreviewOpen(false);
+    setPreviewImg(null);
   };
 
   return (
     <>
       <div className="flex justify-end mb-4">
         <button
-          onClick={handleExportPDF}
+          onClick={handlePreviewExport}
           className="inline-flex items-center gap-2 px-4 py-2 border rounded bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
         >
           <FileText className="w-5 h-5" />
-          Export PDF
+         Preview and Export PDF
         </button>
       </div>
 
-      <div ref={reportRef} className="space-y-6"> 
+      <div ref={reportRef} className="space-y-6">
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card className="bg-green-100 text-green-700">
@@ -175,8 +222,6 @@ const ReportsSection: React.FC = () => {
           </Card>
         </div>
 
-        
-
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* LineChart (Daily Sales) */}
@@ -206,7 +251,7 @@ const ReportsSection: React.FC = () => {
               <CardTitle>Sales by Category</CardTitle>
               <CardDescription>Revenue distribution across medicine categories</CardDescription>
             </CardHeader>
-            <CardContent className='grid grid-cols-1'>
+            <CardContent className="grid grid-cols-1">
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
@@ -223,7 +268,7 @@ const ReportsSection: React.FC = () => {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value) => [`ETB ${Number(value).toFixed(2)}`, 'Revenue']} />
+                  <Tooltip formatter={value => [`ETB ${Number(value).toFixed(2)}`, 'Revenue']} />
                 </PieChart>
               </ResponsiveContainer>
 
@@ -259,8 +304,7 @@ const ReportsSection: React.FC = () => {
             <CardTitle>Top Selling Medicines</CardTitle>
             <CardDescription>Best performing medicines by revenue</CardDescription>
           </CardHeader>
-          <CardContent className='grid grid-cols-2'>
-
+          <CardContent className="grid grid-cols-2">
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={medicinesSalesData} layout="horizontal">
                 <CartesianGrid strokeDasharray="3 3" />
@@ -288,7 +332,7 @@ const ReportsSection: React.FC = () => {
                       <Cell key={`cell-med-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value) => [`ETB ${Number(value).toFixed(2)}`, 'Revenue']} />
+                  <Tooltip formatter={value => [`ETB ${Number(value).toFixed(2)}`, 'Revenue']} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -310,7 +354,10 @@ const ReportsSection: React.FC = () => {
             <CardContent>
               <div className="space-y-2">
                 {lowStockItems.map(medicine => (
-                  <div key={medicine.id} className="flex justify-between items-center p-2 bg-white rounded border">
+                  <div
+                    key={medicine.id}
+                    className="flex justify-between items-center p-2 bg-white rounded border"
+                  >
                     <span className="font-medium">{medicine.name}</span>
                     <span className="text-red-600 font-semibold">
                       {medicine.stock} remaining (Min: {medicine.min_stock})
@@ -322,6 +369,35 @@ const ReportsSection: React.FC = () => {
           </Card>
         )}
       </div>
+
+      {/* Preview Modal */}
+      <Modal open={previewOpen} onClose={() => setPreviewOpen(false)}>
+        <h2 className="text-xl font-semibold mb-4">Report Preview</h2>
+        {previewImg && (
+          <img
+            src={previewImg}
+            alt="Report Preview"
+            className="w-full h-auto border rounded"
+          />
+        )}
+        <div className="mt-6 flex justify-end gap-2">
+          <button
+            onClick={() => {
+              setPreviewOpen(false);
+              setPreviewImg(null);
+            }}
+            className="px-4 py-2 border rounded bg-gray-300 hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleDownloadPDF}
+            className="px-4 py-2 border rounded bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+          >
+            Download PDF
+          </button>
+        </div>
+      </Modal>
     </>
   );
 };
