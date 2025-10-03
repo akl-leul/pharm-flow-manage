@@ -1,4 +1,4 @@
-import React, { useState } from 'react'; 
+import React, { useState } from 'react';  
 import {
   Card,
   CardContent,
@@ -52,7 +52,8 @@ const InventoryTable: React.FC = () => {
 
   // State for delete confirmation dialog
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [medicineToDelete, setMedicineToDelete] = useState<any | null>(null);
+  // Single delete state removed; replaced with multiple selection
+  const [selectedMedicines, setSelectedMedicines] = useState<Set<number>>(new Set());
 
   // Sorting states
   const [sortField, setSortField] = useState<'name' | 'category' | 'stock' | 'price' | 'expiry_date'>('name');
@@ -118,26 +119,54 @@ const InventoryTable: React.FC = () => {
     return expiry < today;
   };
 
-  // Show confirmation dialog on delete click
-  const confirmDelete = (medicine: any) => {
-    setMedicineToDelete(medicine);
+  // Toggle selection for a single medicine
+  const toggleSelection = (id: number) => {
+    setSelectedMedicines((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  // Toggle select all on current page
+  const toggleSelectAll = () => {
+    const currentPageIds = paginatedMedicines.map((m) => m.id);
+    const allSelected = currentPageIds.every((id) => selectedMedicines.has(id));
+    setSelectedMedicines((prev) => {
+      const newSet = new Set(prev);
+      if (allSelected) {
+        // Unselect all on this page
+        currentPageIds.forEach((id) => newSet.delete(id));
+      } else {
+        // Select all on this page
+        currentPageIds.forEach((id) => newSet.add(id));
+      }
+      return newSet;
+    });
+  };
+
+  // Open confirm dialog for deleting selected medicines
+  const openDeleteSelectedConfirm = () => {
+    if(selectedMedicines.size === 0) return;
     setDeleteConfirmOpen(true);
   };
 
-  // Actual delete after confirmation
-  const handleDelete = async () => {
-    if (!medicineToDelete) return;
+  // Delete multiple selected medicines
+  const handleDeleteSelected = async () => {
+    if (selectedMedicines.size === 0) return;
 
-    const { error } = await supabase
-      .from('medicines')
-      .delete()
-      .eq('id', medicineToDelete.id);
+    const idsToDelete = Array.from(selectedMedicines);
+    const { error } = await supabase.from('medicines').delete().in('id', idsToDelete);
     if (error) {
       alert('Failed to delete: ' + error.message);
     } else {
       await mutate(); // refresh data
+      setSelectedMedicines(new Set());
       setDeleteConfirmOpen(false);
-      setMedicineToDelete(null);
     }
   };
 
@@ -189,6 +218,12 @@ const InventoryTable: React.FC = () => {
     return <PageLoadingSpinner />;
   }
 
+  // Get selected medicine objects for popup list
+  const selectedMedicineList = medicines.filter((m) => selectedMedicines.has(m.id));
+
+  const currentPageIds = paginatedMedicines.map((m) => m.id);
+  const allSelectedOnPage = currentPageIds.length > 0 && currentPageIds.every((id) => selectedMedicines.has(id));
+
   return (
     <div className="space-y-6">
       <div className="flex justify-end gap-3 mb-2">
@@ -213,54 +248,71 @@ const InventoryTable: React.FC = () => {
               </CardTitle>
               <CardDescription>Monitor medicine stock levels and manage inventory</CardDescription>
             </div>
+            <div>
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={selectedMedicines.size === 0}
+                onClick={openDeleteSelectedConfirm}
+              >
+                Delete Selected ({selectedMedicines.size})
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap justify-between items-center gap-4">
-  {/* Search input on the left */}
-  <div className="flex-1 min-w-[300px] max-w-[700px]">
-    <Input
-      placeholder="Search medicines..."
-      value={searchQuery}
-      onChange={(e) => setSearchQuery(e.target.value)}
-      className="w-full h-11 text-base px-4 border border-gray-300 rounded-md"
-    />
-  </div>
+            {/* Search input on the left */}
+            <div className="flex-1 min-w-[300px] max-w-[700px]">
+              <Input
+                placeholder="Search medicines..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full h-11 text-base px-4 border border-gray-300 rounded-md"
+              />
+            </div>
 
-  {/* Sorting controls and count on the right */}
-  <div className="flex items-center gap-4 flex-wrap justify-end">
-    <select
-      className="border border-gray-300 rounded-md px-3 py-2 text-sm w-48"
-      value={sortField}
-      onChange={(e) => setSortField(e.target.value as any)}
-    >
-      <option value="name">Name</option>
-      <option value="category">Category</option>
-      <option value="stock">Current Stock</option>
-      <option value="price">Price</option>
-      <option value="expiry_date">Expiry Date</option>
-    </select>
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={() => setSortOrderAsc(!sortOrderAsc)}
-      title={`Sort ${sortOrderAsc ? 'Ascending' : 'Descending'}`}
-      className="border border-gray-300 rounded-md"
-    >
-      {sortOrderAsc ? '↑' : '↓'}
-    </Button>
-    <p className="text-sm text-gray-600 whitespace-nowrap">
-      {filteredMedicines.length} medicines
-    </p>
-  </div>
-</div>
-
+            {/* Sorting controls and count on the right */}
+            <div className="flex items-center gap-4 flex-wrap justify-end">
+              <select
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm w-48"
+                value={sortField}
+                onChange={(e) => setSortField(e.target.value as any)}
+              >
+                <option value="name">Name</option>
+                <option value="category">Category</option>
+                <option value="stock">Current Stock</option>
+                <option value="price">Price</option>
+                <option value="expiry_date">Expiry Date</option>
+              </select>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSortOrderAsc(!sortOrderAsc)}
+                title={`Sort ${sortOrderAsc ? 'Ascending' : 'Descending'}`}
+                className="border border-gray-300 rounded-md"
+              >
+                {sortOrderAsc ? '↑' : '↓'}
+              </Button>
+              <p className="text-sm text-gray-600 whitespace-nowrap">
+                {filteredMedicines.length} medicines
+              </p>
+            </div>
+          </div>
 
           {/* Table */}
-          <div className="rounded-md border">
+          <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>
+                    <input
+                      type="checkbox"
+                      checked={allSelectedOnPage}
+                      onChange={toggleSelectAll}
+                      aria-label="Select all medicines on page"
+                    />
+                  </TableHead>
                   <TableHead>Medicine Name</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Current Stock</TableHead>
@@ -271,15 +323,23 @@ const InventoryTable: React.FC = () => {
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody >
+              <TableBody>
                 {paginatedMedicines.map((medicine) => {
                   const stockStatus = getStockStatus(medicine);
                   const expiringSoon = isExpiringSoon(medicine.expiry_date);
                   const expired = isExpired(medicine.expiry_date);
+                  const isSelected = selectedMedicines.has(medicine.id);
 
                   return (
-                    <TableRow key={medicine.id} className="even:bg-gray-300 hover:bg-gray-100"
-                  >
+                    <TableRow key={medicine.id} className="even:bg-gray-300 hover:bg-gray-100">
+                      <TableCell>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelection(medicine.id)}
+                          aria-label={`Select medicine ${medicine.name}`}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">{medicine.name}</TableCell>
                       <TableCell>{medicine.category}</TableCell>
                       <TableCell>
@@ -332,7 +392,10 @@ const InventoryTable: React.FC = () => {
                         <Button
                           variant="destructive"
                           size="icon"
-                          onClick={() => confirmDelete(medicine)}
+                          onClick={() => {
+                            setSelectedMedicines(new Set([medicine.id]));
+                            setDeleteConfirmOpen(true);
+                          }}
                         >
                           <Trash className="h-4 w-4" />
                         </Button>
@@ -448,21 +511,31 @@ const InventoryTable: React.FC = () => {
       )}
 
       {/* Delete Confirmation Dialog */}
-     <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Confirm Delete</DialogTitle>
           </DialogHeader>
-          <p>
-            Are you sure you want to delete{' '}
-            <strong>{medicineToDelete?.name}</strong>? This action cannot be undone.
-          </p>
+          {selectedMedicineList.length === 1 ? (
+            <p>
+              Are you sure you want to delete{' '}
+              <strong>{selectedMedicineList[0].name}</strong>? This action cannot be undone.
+            </p>
+          ) : (
+            <div>
+              <p>This will delete the following {selectedMedicineList.length} medicines. This action cannot be undone.</p>
+              <ul className="max-h-48 overflow-y-auto list-disc pl-5 mt-2">
+                {selectedMedicineList.map((m) => (
+                  <li key={m.id}>{m.name}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDelete}>
+            <Button variant="destructive" onClick={handleDeleteSelected}>
               Delete
             </Button>
           </div>
