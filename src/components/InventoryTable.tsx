@@ -34,10 +34,11 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle,
+  DialogTitle, DialogFooter
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import * as XLSX from 'xlsx';
+ 
 
 const PAGE_SIZE = 15;
 
@@ -174,7 +175,93 @@ const InventoryTable: React.FC = () => {
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Medicines');
     XLSX.writeFile(workbook, 'MedicinesInventory.xlsx');
   };
+{editingMedicine && (
+  <Dialog open={true} onOpenChange={() => setEditingMedicine(null)}>
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Edit Medicine</DialogTitle>
+      </DialogHeader>
 
+      {/* Form for editing */}
+      <form onSubmit={handleUpdate} className="space-y-4">
+        <div>
+          <Label>Name</Label>
+          <Input
+            value={editingMedicine.name}
+            onChange={(e) =>
+              setEditingMedicine({ ...editingMedicine, name: e.target.value })
+            }
+          />
+        </div>
+
+        <div>
+          <Label>Category</Label>
+          <Input
+            value={editingMedicine.category}
+            onChange={(e) =>
+              setEditingMedicine({ ...editingMedicine, category: e.target.value })
+            }
+          />
+        </div>
+
+        <div>
+          <Label>Stock</Label>
+          <Input
+            type="number"
+            value={editingMedicine.stock}
+            onChange={(e) =>
+              setEditingMedicine({ ...editingMedicine, stock: Number(e.target.value) })
+            }
+          />
+        </div>
+
+        <div>
+          <Label>Min Stock</Label>
+          <Input
+            type="number"
+            value={editingMedicine.min_stock}
+            onChange={(e) =>
+              setEditingMedicine({ ...editingMedicine, min_stock: Number(e.target.value) })
+            }
+          />
+        </div>
+
+        <div>
+          <Label>Price</Label>
+          <Input
+            type="number"
+            value={editingMedicine.price}
+            onChange={(e) =>
+              setEditingMedicine({ ...editingMedicine, price: Number(e.target.value) })
+            }
+          />
+        </div>
+
+        <div>
+          <Label>Expiry Date</Label>
+          <Input
+            type="date"
+            value={editingMedicine.expiry_date}
+            onChange={(e) =>
+              setEditingMedicine({ ...editingMedicine, expiry_date: e.target.value })
+            }
+          />
+        </div>
+
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="outline"
+            type="button"
+            onClick={() => setEditingMedicine(null)}
+          >
+            Cancel
+          </Button>
+          <Button type="submit">Save Changes</Button>
+        </div>
+      </form>
+    </DialogContent>
+  </Dialog>
+)}
   if (isLoading) return <PageLoadingSpinner />;
 
   return (
@@ -296,12 +383,12 @@ const InventoryTable: React.FC = () => {
                       </TableCell>
                       <TableCell className="text-right space-x-2">
                         <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setEditingMedicine(medicine)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
+  variant="outline"
+  size="icon"
+  onClick={() => setEditingMedicine(medicine)}
+>
+  <Pencil className="h-4 w-4" />
+</Button>
                         <Button
                           variant="destructive"
                           size="icon"
@@ -362,6 +449,7 @@ const InventoryTable: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+
 
       {/* Single Delete Dialog */}
       <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
