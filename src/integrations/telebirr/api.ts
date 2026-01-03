@@ -147,10 +147,6 @@ export const createTelebirrPayment = async (
     console.log('Creating payment with Ethiopian Telebirr Portal:', paymentRequest);
     console.log('Request body:', JSON.stringify(paymentRequest, null, 2));
     
-    // Add timeout to avoid hanging
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-    
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
@@ -159,11 +155,9 @@ export const createTelebirrPayment = async (
         'User-Agent': `${TELEBIRR_CONFIG.APP_NAME}/${TELEBIRR_CONFIG.APP_VERSION}`,
       },
       body: JSON.stringify(paymentRequest),
-      signal: controller.signal
+      signal: AbortSignal.timeout(30000), // 30 second timeout
     });
     
-    clearTimeout(timeoutId);
-
     if (!response.ok) {
       // Try to get more error details
       let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
@@ -208,13 +202,19 @@ export const createTelebirrPayment = async (
   } catch (error) {
     console.error('Error creating Ethiopian Telebirr payment:', error);
     
+    // Handle AbortError (timeout)
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error('Request timed out after 30 seconds');
+      throw new Error('Ethiopian Telebirr API request timed out. Please check your network connection and try again.');
+    }
+    
     // Handle CORS and network errors gracefully
     if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
       console.warn('Network/CORS error detected. This is expected in development without proper server setup.');
       
       if (TELEBIRR_CONFIG.IS_DEVELOPMENT) {
         console.log('Using Vite proxy server to handle CORS. Make sure proxy is configured correctly.');
-        throw new Error('Unable to connect to Ethiopian Telebirr API. This is expected in development mode. The proxy server should handle CORS automatically. Check the console for proxy logs.');
+        throw new Error('Unable to connect to Ethiopian Telebirr API. This is expected in development mode. The proxy server should handle CORS automatically. Check console for proxy logs.');
       } else {
         // Production error
         throw new Error('Unable to connect to Ethiopian Telebirr API. This may be due to CORS restrictions or network connectivity. Please ensure proper deployment setup with CORS headers or proxy configuration.');
