@@ -5,9 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useSales, useDeleteSale } from '../hooks/useSales';
-import { Search, Edit, Trash2, Calendar, Download } from 'lucide-react';
+import { Search, Edit, Trash2, Calendar, Download, Receipt } from 'lucide-react';
 import EditSaleDialog from './EditSaleDialog';
+import PrintReceipt from './PrintReceipt';
 import { PageLoadingSpinner } from './LoadingSpinner';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 // Import xlsx for Excel export
 import * as XLSX from 'xlsx';
@@ -18,6 +20,7 @@ const SalesTable: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
   const [editingSale, setEditingSale] = useState<string | null>(null);
+  const [printingSale, setPrintingSale] = useState<string | null>(null);
 
   const filteredSales = sales.filter(sale => {
     const matchesSearch = sale.medicine_name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -167,6 +170,23 @@ const SalesTable: React.FC = () => {
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setPrintingSale(sale.id)}
+                                className="text-blue-600 hover:text-blue-700"
+                              >
+                                <Receipt className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Print Receipt</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                         <Button
                           variant="outline"
                           size="sm"
@@ -189,6 +209,13 @@ const SalesTable: React.FC = () => {
           <EditSaleDialog
             saleId={editingSale}
             onClose={() => setEditingSale(null)}
+          />
+        )}
+        
+        {printingSale && (
+          <PrintReceipt
+            sale={sales.find(s => s.id === printingSale)!}
+            onClose={() => setPrintingSale(null)}
           />
         )}
       </CardContent>

@@ -59,6 +59,28 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
+- React Router
+- Supabase
+- React Query
+
+## Development Tools
+
+For a better development experience, we recommend installing **React DevTools**:
+
+1. **Browser Extension**: Install the React DevTools browser extension from [https://reactjs.org/link/react-devtools](https://reactjs.org/link/react-devtools)
+2. **Benefits**:
+   - Inspect React component trees
+   - Debug props and state
+   - Performance profiling
+   - Component hierarchy visualization
+
+## Common Issues and Solutions
+
+### React Router Warnings
+If you see React Router future flag warnings, they have been resolved by adding v7 future flags to the BrowserRouter configuration.
+
+### Supabase API Errors
+The 406 error from Supabase has been resolved by using `maybeSingle()` instead of `single()` for database queries that may return no results.
 
 ## How can I deploy this project?
 

@@ -60,6 +60,12 @@ export const useUpdateMedicineStock = () => {
   
   return useMutation({
     mutationFn: async ({ id, stock }: { id: string; stock: number }) => {
+      console.log('Updating medicine stock:', { id, stock });
+      
+      if (!id) {
+        throw new Error('Medicine ID is required for stock update');
+      }
+      
       const { data, error } = await supabase
         .from('medicines')
         .update({ stock, updated_at: new Date().toISOString() })
@@ -67,7 +73,12 @@ export const useUpdateMedicineStock = () => {
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating stock:', error);
+        throw error;
+      }
+      
+      console.log('Stock updated successfully:', data);
       return data;
     },
     onSuccess: () => {
@@ -81,7 +92,7 @@ export const useUpdateMedicineStock = () => {
       console.error('Error updating stock:', error);
       toast({
         title: "Error",
-        description: "Failed to update medicine stock",
+        description: `Failed to update medicine stock: ${error.message}`,
         variant: "destructive"
       });
     }

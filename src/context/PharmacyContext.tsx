@@ -37,14 +37,29 @@ export const PharmacyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
+      console.log('Login attempt:', { username, password });
+      
       const { data, error } = await supabase
         .from('admin_users')
         .select('*')
         .eq('username', username)
         .eq('password_hash', password) // In production, use proper password hashing
-        .single();
+        .maybeSingle(); // Use maybeSingle() instead of single() to handle no results gracefully
 
-      if (error || !data) {
+      console.log('Supabase response:', { data, error });
+
+      if (error) {
+        console.error('Supabase error:', error);
+        toast({
+          title: "Login Failed",
+          description: `Database error: ${error.message}`,
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      if (!data) {
+        console.log('No user found with provided credentials');
         toast({
           title: "Login Failed",
           description: "Invalid username or password",
@@ -53,6 +68,7 @@ export const PharmacyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return false;
       }
 
+      console.log('Login successful:', data);
       setAdmin(data);
       setIsAuthenticated(true);
       localStorage.setItem('pharmacyAuth', 'true');
