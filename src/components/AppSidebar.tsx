@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React from 'react';
 import {
   Sidebar,
   SidebarContent,
@@ -12,191 +12,132 @@ import {
   SidebarFooter,
 } from '@/components/ui/sidebar';
 import {
-  Pill,
+  LayoutDashboard,
   ShoppingCart,
   Package,
-  TrendingUp,
+  BarChart3,
+  Users,
+  Truck,
+  FileText,
+  Settings,
   LogOut,
-  BarChart3
+  Activity,
+  Bell,
+  Building2,
+  Moon,
+  Sun,
+  Undo2,
 } from 'lucide-react';
 import { usePharmacy } from '../context/PharmacyContext';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-
-interface Medicine {
-  id: number;
-  name: string;
-  category: string;
-}
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 interface AppSidebarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
-  medicines: Medicine[];  // New prop
 }
 
-// Main menu tab items
-const menuItems = [
-  {
-    title: "Overview",
-    value: "overview",
-    icon: BarChart3,
-    description: "Dashboard overview",
-  },
-  {
-    title: "Sales",
-    value: "sales",
-    icon: ShoppingCart,
-    description: "Manage sales transactions",
-  },
-  {
-    title: "Inventory",
-    value: "inventory",
-    icon: Package,
-    description: "Manage medicine stock",
-  },
-  {
-    title: "Reports",
-    value: "reports",
-    icon: TrendingUp,
-    description: "View analytics & reports",
-  },
+const mainNav = [
+  { title: 'Dashboard', value: 'overview', icon: LayoutDashboard },
+  { title: 'Point of Sale', value: 'pos', icon: ShoppingCart },
+  { title: 'Inventory', value: 'inventory', icon: Package },
+  { title: 'Sales History', value: 'sales', icon: BarChart3 },
 ];
 
-export function AppSidebar({ activeTab, onTabChange, medicines }: AppSidebarProps) {
-  const { logout } = usePharmacy();
+const managementNav = [
+  { title: 'Customers', value: 'customers', icon: Users },
+  { title: 'Suppliers', value: 'suppliers', icon: Truck },
+  { title: 'Prescriptions', value: 'prescriptions', icon: FileText },
+  { title: 'Returns', value: 'returns', icon: Undo2 },
+];
 
-  // Universal search input state
-  const [searchTerm, setSearchTerm] = useState('');
+const systemNav = [
+  { title: 'Reports', value: 'reports', icon: BarChart3 },
+  { title: 'Activity Log', value: 'activity', icon: Activity },
+  { title: 'Notifications', value: 'notifications', icon: Bell },
+  { title: 'Branches', value: 'branches', icon: Building2 },
+  { title: 'Settings', value: 'settings', icon: Settings },
+];
 
-  // Extended tabs including 'links' (if still needed)
-  const allTabs = menuItems.map(item => ({ ...item, type: 'menu' }));
+export function AppSidebar({ activeTab, onTabChange }: AppSidebarProps) {
+  const { logout, admin, theme, toggleTheme } = usePharmacy();
 
-  // Filtered search results include menu items and medicines
-  const filteredResults = useMemo(() => {
-    const term = searchTerm.toLowerCase().trim();
-    if (!term) return [];
+  const renderGroup = (label: string, items: typeof mainNav) => (
+    <SidebarGroup>
+      <SidebarGroupLabel className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground px-3 mb-1">
+        {label}
+      </SidebarGroupLabel>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {items.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.value;
+            return (
+              <SidebarMenuItem key={item.value}>
+                <SidebarMenuButton
+                  isActive={isActive}
+                  onClick={() => onTabChange(item.value)}
+                  className={`h-9 px-3 rounded-lg transition-all duration-150 ${
+                    isActive
+                      ? 'bg-primary text-primary-foreground font-medium'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent'
+                  }`}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span className="text-sm">{item.title}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            );
+          })}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  );
 
-    const menuMatches = menuItems.filter(item =>
-      item.title.toLowerCase().includes(term) ||
-      item.description.toLowerCase().includes(term)
-    ).map(item => ({ ...item, type: 'menu' }));
-
-    const medicineMatches = medicines.filter(med =>
-      med.name.toLowerCase().includes(term) ||
-      med.category.toLowerCase().includes(term)
-    ).map(med => ({ ...med, type: 'medicine' }));
-
-    return [...menuMatches, ...medicineMatches];
-  }, [searchTerm, medicines]);
-
-  // Handle selecting a search result:
-  // For medicines, switch to inventory tab and optionally trigger highlighting (not implemented here)
-  const handleSelectSearchResult = (item: typeof menuItems[0] | Medicine & { type: string }) => {
-    if (item.type === 'menu' && 'value' in item) {
-      onTabChange(item.value);
-    } else if (item.type === 'medicine') {
-      onTabChange('inventory');
-      // Optionally you might want to communicate the medicine ID to inventory component to scroll/highlight it.
-    }
-    setSearchTerm('');
-  };
+  const initials = admin?.full_name
+    ? admin.full_name.split(' ').map(n => n[0]).join('').toUpperCase()
+    : admin?.username?.[0]?.toUpperCase() || 'A';
 
   return (
-    <Sidebar className="border-r bg-sidebar flex flex-col" style={{ minHeight: '100vh' }}>
-      <SidebarHeader className="border-b p-4">
+    <Sidebar className="border-r border-sidebar-border bg-sidebar">
+      <SidebarHeader className="p-4 pb-2">
         <div className="flex items-center gap-3">
-          <div className="bg-blue-300 p-2 rounded-lg">
-            <Pill className="h-6 w-6 text-blue" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
+            <Package className="h-5 w-5 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-sidebar-foreground">PharmaFlow</h1>
-            <p className="text-xs text-muted-foreground">Admin Dashboard</p>
+            <h1 className="text-base font-semibold tracking-tight text-sidebar-foreground">PharmFlow</h1>
+            <p className="text-[11px] text-muted-foreground">Pharmacy Management</p>
           </div>
-        </div>
-
-        {/* Universal Search Bar */}
-        <div className="mt-4 relative">
-          <Input
-            placeholder="Search pages and medicines..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full"
-            autoComplete="off"
-          />
-          {searchTerm && (
-            <div className="bg-white border border-gray-300 rounded mt-1 max-h-60 overflow-y-auto z-50 absolute left-0 right-0 shadow-lg text-sm">
-              {filteredResults.length > 0 ? (
-                filteredResults.map((item) => {
-                  const isActiveMenu = item.type === 'menu' && activeTab === item.value;
-                  return (
-                    <button
-                      key={item.type === 'medicine' ? `med-${item.id}` : item.title}
-                      onClick={() => handleSelectSearchResult(item)}
-                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 focus:bg-gray-200 transition ${
-                        isActiveMenu ? 'font-semibold bg-gray-200' : ''
-                      }`}
-                    >
-                      <div className="font-medium">
-                        {item.type === 'medicine' ? item.name : item.title}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {item.type === 'medicine' ? `Medicine in ${item.Category}` : item.description}
-                      </div>
-                    </button>
-                  );
-                })
-              ) : (
-                <div className="px-3 py-2 text-muted-foreground">No results found</div>
-              )}
-            </div>
-          )}
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="p-2 flex-grow overflow-auto">
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground mb-2">
-            Navigation
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu className="space-y-1">
-              {allTabs.map((item) => {
-                const Icon = item.icon!;
-                return (
-                  <SidebarMenuItem key={item.value}>
-                    <SidebarMenuButton
-                      isActive={activeTab === item.value}
-                      onClick={() => {
-                        onTabChange(item.value);
-                        setSearchTerm('');
-                      }}
-                      className="w-full justify-start gap-3 h-11 px-3 py-2 rounded-lg transition-all duration-200 hover:bg-sidebar-accent group"
-                    >
-                      <Icon className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
-                      <div className="flex flex-col items-start">
-                        <span className="text-sm font-medium">{item.title}</span>
-                        <span className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                          {item.description}
-                        </span>
-                      </div>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+      <SidebarContent className="px-2 py-2">
+        {renderGroup('Main', mainNav)}
+        {renderGroup('Management', managementNav)}
+        {renderGroup('System', systemNav)}
       </SidebarContent>
 
-      <SidebarFooter className="border-t p-4">
+      <SidebarFooter className="border-t border-sidebar-border p-3">
+        <div className="flex items-center gap-3 mb-3 px-1">
+          <Avatar className="h-8 w-8">
+            <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">{initials}</AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-sidebar-foreground truncate">{admin?.full_name || admin?.username}</p>
+            <p className="text-[11px] text-muted-foreground capitalize">{admin?.role || 'admin'}</p>
+          </div>
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={toggleTheme}>
+            {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+          </Button>
+        </div>
         <Button
-          variant="outline"
+          variant="ghost"
           onClick={logout}
-          className="w-full justify-start gap-3 h-11 transition-all duration-200 hover:bg-destructive hover:text-destructive-foreground"
+          className="w-full justify-start gap-3 h-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
         >
           <LogOut className="h-4 w-4" />
-          Logout
+          <span className="text-sm">Sign out</span>
         </Button>
       </SidebarFooter>
     </Sidebar>

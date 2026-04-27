@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { usePharmacy } from '../context/PharmacyContext';
-import { Pill, Shield } from 'lucide-react';
+import { Package, Loader } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -16,75 +15,77 @@ const LoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    setTimeout(() => {
-      login(username, password);
+    try {
+      await login(username, password);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="w-full max-w-sm animate-fade-in">
         <div className="text-center mb-8">
-          <div className="flex justify-center items-center gap-2 mb-4">
-            <div className="bg-blue-600 p-3 rounded-full">
-              <Pill className="h-8 w-8 text-white" />
+          <div className="flex justify-center mb-5">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary">
+              <Package className="h-7 w-7 text-primary-foreground" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">PharmaFlow</h1>
-          <p className="text-gray-600 mt-2">Pharmacy Management System</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">PharmFlow</h1>
+          <p className="text-sm text-muted-foreground mt-1">Sign in to your pharmacy</p>
         </div>
 
-        <Card className="shadow-xl border-0">
-          <CardHeader className="space-y-1">
-            <div className="flex items-center gap-2 justify-center">
-              <Shield className="h-5 w-5 text-blue-600" />
-              <CardTitle className="text-2xl text-center">Admin Login</CardTitle>
-            </div>
+        <Card className="border border-border shadow-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg text-center text-card-foreground">Welcome back</CardTitle>
             <CardDescription className="text-center">
-              Enter your credentials to access the dashboard
+              Enter your credentials to continue
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
+                <Label htmlFor="username" className="text-sm font-medium text-foreground">Username</Label>
                 <Input
                   id="username"
                   type="text"
-                  placeholder="Enter your username"
+                  placeholder="admin"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   required
-                  className="h-11"
+                  className="h-10"
+                  autoComplete="username"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" className="text-sm font-medium text-foreground">Password</Label>
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Enter your password"
+                  placeholder="Enter password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="h-11"
+                  className="h-10"
+                  autoComplete="current-password"
                 />
               </div>
-              <Button 
-                type="submit" 
-                className="w-full h-11 bg-blue-600 hover:bg-blue-700"
+              <Button
+                type="submit"
+                className="w-full h-10"
                 disabled={isLoading}
               >
-                {isLoading ? 'Signing in...' : 'Sign In'}
+                {isLoading ? (
+                  <Loader className="h-4 w-4 animate-spin" />
+                ) : (
+                  'Sign In'
+                )}
               </Button>
             </form>
-            
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-600 font-medium mb-2">Demo Credentials:</p>
-              <p className="text-xs text-gray-500">Username: admin</p>
-              <p className="text-xs text-gray-500">Password: pharmacy123</p>
+            <div className="mt-5 p-3 rounded-lg bg-muted">
+              <p className="text-xs text-muted-foreground font-medium mb-1">Demo credentials</p>
+              <p className="text-xs text-muted-foreground">Username: <span className="font-mono text-foreground">admin</span></p>
+              <p className="text-xs text-muted-foreground">Password: <span className="font-mono text-foreground">admin123</span></p>
             </div>
           </CardContent>
         </Card>
