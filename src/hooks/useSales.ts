@@ -1,7 +1,6 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Sale } from '@/types/pharmacy';
+import { Sale, SaleItem } from '@/types/pharmacy';
 import { toast } from '@/hooks/use-toast';
 
 export const useSales = () => {
@@ -12,111 +11,76 @@ export const useSales = () => {
         .from('sales')
         .select('*')
         .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error('Error fetching sales:', error);
-        throw error;
-      }
-      
+      if (error) throw error;
       return data as Sale[];
     },
   });
 };
 
-export const useAddSale = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async (sale: Omit<Sale, 'id' | 'created_at' | 'updated_at'>) => {
+export const useSaleItems = (saleId?: string) => {
+  return useQuery({
+    queryKey: ['sale_items', saleId],
+    queryFn: async () => {
+      if (!saleId) return [];
       const { data, error } = await supabase
-        .from('sales')
-        .insert([sale])
-        .select()
-        .single();
-      
+        .from('sale_items')
+        .select('*')
+        .eq('sale_id', saleId);
       if (error) throw error;
-      return data;
+      return data as SaleItem[];
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sales'] });
-      queryClient.invalidateQueries({ queryKey: ['medicines'] });
-      toast({
-        title: "Sale Recorded",
-        description: "Sale has been recorded successfully"
-      });
-    },
-    onError: (error) => {
-      console.error('Error adding sale:', error);
-      toast({
-        title: "Error",
-        description: "Failed to record sale",
-        variant: "destructive"
-      });
-    }
+    enabled: !!saleId,
   });
 };
 
-export const useUpdateSale = () => {
+export const useAddSale = () => {
   const queryClient = useQueryClient();
-  
   return useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Sale> }) => {
-      const { data, error } = await supabase
+    mutationFn: async ({ sale, items }: { sale: Partial<Sale>; items: Partial<SaleItem>[] }) => {
+      // Generate invoice number
+      const { data: invoiceData } = await supabase.rpc('generate_invoice_number');
+      const invoiceNumber = invoiceData || `INV-${Date.now()}`;
+
+      const { data: saleData, error: saleError } = await supabase
         .from('sales')
-        .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq('id', id)
+        .insert([{ ...sale, invoice_number: invoiceNumber }])
         .select()
         .single();
-      
-      if (error) throw error;
-      return data;
+      if (saleError) throw saleError;
+
+      if (items.length > 0) {
+        const saleItems = items.map(item => ({ ...item, sale_id: saleData.id }));
+        const { error: itemsError } = await supabase.from('sale_items').insert(saleItems);
+        if (itemsError) throw itemsError;
+      }
+
+      return saleData as Sale;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales'] });
       queryClient.invalidateQueries({ queryKey: ['medicines'] });
-      toast({
-        title: "Sale Updated",
-        description: "Sale has been updated successfully"
-      });
+      toast({ title: "Sale completed", description: "Transaction recorded successfully" });
     },
     onError: (error) => {
-      console.error('Error updating sale:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update sale",
-        variant: "destructive"
-      });
+      toast({ title: "Error", description: `Sale failed: ${error.message}`, variant: "destructive" });
     }
   });
 };
 
 export const useDeleteSale = () => {
   const queryClient = useQueryClient();
-  
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('sales')
-        .delete()
-        .eq('id', id);
-      
+      const { error } = await supabase.from('sales').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales'] });
       queryClient.invalidateQueries({ queryKey: ['medicines'] });
-      toast({
-        title: "Sale Deleted",
-        description: "Sale has been deleted and stock restored"
-      });
+      toast({ title: "Deleted", description: "Sale record removed" });
     },
     onError: (error) => {
-      console.error('Error deleting sale:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete sale",
-        variant: "destructive"
-      });
+      toast({ title: "Error", description: `Delete failed: ${error.message}`, variant: "destructive" });
     }
   });
 };
